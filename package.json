@@ -2,13 +2,28 @@
   "name": "tslox",
   "version": "1.0.0",
   "description": "TypeScript implementation of Lox, the programming language from the book \"Crafting Interpreters\" by Robert Nystrom",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
+  "author": "Lou Acresti (louis.acresti@gmail.com)",
   "license": "ISC",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "tslox": "./lib/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm run --silent build && node ./lib/cli.js",
+    "build": "tsc -p tsconfig.json",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {
+    "docopt": "0.6.2"
+  },
   "devDependencies": {
-    "typescript": "^4.4.4"
-  }
+    "@types/docopt": "0.6.33",
+    "prettier": "2.4.1",
+    "typescript": "4.4.4"
+  },
+  "files": [
+    "lib/"
+  ]
 }
