@@ -10,9 +10,9 @@ Usage: tslox [<script>]
 
 const {'<script>': script} = docopt(usage);
 
-async function runFile(filePath: string): Promise<void> {
-  const source = await fs.readFile(filePath, 'utf-8');
-  await run(source);
+async function runFile(filename: string): Promise<void> {
+  const source = await fs.readFile(filename, 'utf-8');
+  await run(source, filename);
 }
 
 async function runPrompt() {
@@ -27,7 +27,16 @@ async function runPrompt() {
 
   while (true) {
     const line = await question('> ');
-    await run(line);
+    const {err: errors} = await run(line, '[tslox]');
+
+    if (errors) {
+      for (const err of errors) {
+        const prefix = err.location
+          ? `[${err.location.start.line}:${err.location.start.column}]: `
+          : '';
+        console.error(`${prefix}${err.message}`);
+      }
+    }
   }
 }
 
