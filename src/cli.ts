@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {docopt} from 'docopt';
 import {promises as fs} from 'fs';
-import {run} from './index.js';
+import {run} from './index';
 import * as readline from 'readline';
 
 const usage = `
@@ -16,6 +16,9 @@ async function runFile(filePath: string): Promise<void> {
 }
 
 async function runPrompt() {
+  console.log('TSLox (Ctrl-D to exit)');
+  console.log('');
+
   const rl = readline.createInterface(process.stdin, process.stdout);
   const question = (prompt: string) =>
     new Promise<string>(resolve => {

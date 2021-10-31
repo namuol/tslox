@@ -4,7 +4,6 @@
   "description": "TypeScript implementation of Lox, the programming language from the book \"Crafting Interpreters\" by Robert Nystrom",
   "author": "Lou Acresti (louis.acresti@gmail.com)",
   "license": "ISC",
-  "type": "module",
   "main": "index.js",
   "bin": {
     "tslox": "./lib/cli.js"
@@ -19,13 +18,17 @@
     "docopt": "0.6.2"
   },
   "devDependencies": {
+    "@babel/preset-env": "7.16.0",
+    "@babel/preset-typescript": "7.16.0",
     "@types/docopt": "0.6.33",
+    "@types/jest": ">=27",
     "@types/node": "16.11.6",
-    "@typescript-eslint/eslint-plugin": "^5.2.0",
-    "@typescript-eslint/parser": "^5.2.0",
-    "eslint": "^8.1.0",
+    "@typescript-eslint/eslint-plugin": "5.2.0",
+    "@typescript-eslint/parser": "5.2.0",
+    "eslint": "8.1.0",
+    "jest": "27.3.1",
     "prettier": "2.4.1",
-    "typescript": "^4.4.4"
+    "typescript": "4.4.4"
   },
   "files": [
     "lib/"
