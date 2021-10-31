@@ -47,6 +47,9 @@ enum TokenType {
   VAR = 'VAR',
   WHILE = 'WHILE',
 
+  // I added these:
+  COMMENT = 'COMMENT',
+
   EOF = 'EOF',
 }
 
@@ -54,10 +57,12 @@ class Token {
   type: TokenType;
   lexeme: string;
   line: number;
-  constructor(type: TokenType, lexeme: string, line: number) {
+  column: number;
+  constructor(type: TokenType, lexeme: string, line: number, column: number) {
     this.type = type;
     this.lexeme = lexeme;
     this.line = line;
+    this.column = column;
   }
 }
 
@@ -98,15 +103,15 @@ export class Scanner {
    * An index into our program pointing to the first character of the lexeme
    * being scanned.
    */
-  private start: number = 0;
+  private start = 0;
 
   /**
    * An index into our program pointing to the current character being considered.
    */
-  private current: number = 0;
+  private current = 0;
 
-  private line: number = 1;
-  private column: number = 1;
+  private line = 1;
+  private column = 0;
   private tokens: Token[] = [];
 
   private errors: LoxError[] = [];
@@ -133,13 +138,25 @@ export class Scanner {
       return false;
     }
 
-    this.current += 1;
+    ++this.current;
     return true;
+  }
+
+  private peek(): string {
+    return this.program[this.current];
   }
 
   private scanToken(): Result<LoxError, undefined> {
     const char = this.advance();
     switch (char) {
+      case ' ':
+      case '\r':
+      case '\t':
+        break;
+      case '\n':
+        ++this.line;
+        this.column = 1;
+        break;
       case '(':
         this.addToken(TokenType.LEFT_PAREN);
         break;
@@ -186,6 +203,17 @@ export class Scanner {
           this.match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER
         );
         break;
+      case '/':
+        if (this.match('/')) {
+          // A comment goes to the end of the line:
+          while (this.peek() !== '\n' && !this.isAtEnd()) {
+            this.advance();
+          }
+          this.addToken(TokenType.COMMENT);
+        } else {
+          this.addToken(TokenType.SLASH);
+        }
+        break;
       default:
         return err(
           new ScannerError(
@@ -202,7 +230,8 @@ export class Scanner {
 
   private addToken(type: TokenType): void {
     const text = this.program.substring(this.start, this.current);
-    this.tokens.push(new Token(type, text, this.line));
+    this.tokens.push(new Token(type, text, this.line, this.column));
+    this.column += text.length;
   }
 
   scanTokens(): Result<LoxError[], Token[]> {
