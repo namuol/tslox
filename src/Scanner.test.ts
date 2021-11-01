@@ -1,4 +1,4 @@
-import {Scanner} from './index';
+import {Scanner} from './Scanner';
 
 describe('Scanner', () => {
   it('handles very simple program', () => {
