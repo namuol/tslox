@@ -222,7 +222,7 @@ export class Scanner {
     // Closing '"'
     this.advance();
 
-    this.addToken(TokenType.STRING, text.join(''));
+    this.addToken(TokenType.STRING);
   }
 
   private isDigit(char: string): boolean {

@@ -27,7 +27,7 @@ describe('Scanner', () => {
           },
           Token {
             "column": 21,
-            "lexeme": "lox",
+            "lexeme": "\\"lox\\"",
             "line": 1,
             "type": "STRING",
           },
@@ -115,7 +115,7 @@ describe('Scanner', () => {
           },
           Token {
             "column": 39,
-            "lexeme": "lox",
+            "lexeme": "\\"lox\\"",
             "line": 1,
             "type": "STRING",
           },
@@ -222,7 +222,7 @@ describe('Scanner', () => {
           },
           Token {
             "column": 21,
-            "lexeme": "hi",
+            "lexeme": "\\"hi\\"",
             "line": 3,
             "type": "STRING",
           },
