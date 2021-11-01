@@ -42,6 +42,94 @@ describe('Scanner', () => {
     `);
   });
 
+  it('handles comments', () => {
+    const program = 'bacon(); // cool stuff';
+    expect(new Scanner(program, 'test.lox').scanTokens())
+      .toMatchInlineSnapshot(`
+      Object {
+        "val": Array [
+          Token {
+            "column": 6,
+            "lexeme": "bacon",
+            "line": 1,
+            "type": "IDENTIFIER",
+          },
+          Token {
+            "column": 7,
+            "lexeme": "(",
+            "line": 1,
+            "type": "LEFT_PAREN",
+          },
+          Token {
+            "column": 8,
+            "lexeme": ")",
+            "line": 1,
+            "type": "RIGHT_PAREN",
+          },
+          Token {
+            "column": 9,
+            "lexeme": ";",
+            "line": 1,
+            "type": "SEMICOLON",
+          },
+          Token {
+            "column": 22,
+            "lexeme": "// cool stuff",
+            "line": 1,
+            "type": "COMMENT",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('handles block comments', () => {
+    const program = 'var language /* pretty nifty */ = "lox";';
+    expect(new Scanner(program, 'test.lox').scanTokens())
+      .toMatchInlineSnapshot(`
+      Object {
+        "val": Array [
+          Token {
+            "column": 4,
+            "lexeme": "var",
+            "line": 1,
+            "type": "VAR",
+          },
+          Token {
+            "column": 13,
+            "lexeme": "language",
+            "line": 1,
+            "type": "IDENTIFIER",
+          },
+          Token {
+            "column": 31,
+            "lexeme": "/* pretty nifty */",
+            "line": 1,
+            "type": "COMMENT_BLOCK",
+          },
+          Token {
+            "column": 33,
+            "lexeme": "=",
+            "line": 1,
+            "type": "EQUAL",
+          },
+          Token {
+            "column": 39,
+            "lexeme": "lox",
+            "line": 1,
+            "type": "STRING",
+          },
+          Token {
+            "column": 40,
+            "lexeme": ";",
+            "line": 1,
+            "type": "SEMICOLON",
+          },
+        ],
+      }
+    `);
+  });
+
   it('handles multiline program', () => {
     const program = [
       'class Foo < Bar {',

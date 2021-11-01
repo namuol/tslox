@@ -1,5 +1,7 @@
 import {Result, err, ok} from './Result';
 
+/*
+*/
 enum TokenType {
   // Single-character tokens.
   LEFT_PAREN = 'LEFT_PAREN',
@@ -49,6 +51,7 @@ enum TokenType {
 
   // I added these:
   COMMENT = 'COMMENT',
+  COMMENT_BLOCK = 'COMMENT_BLOCK',
 
   EOF = 'EOF',
 }
@@ -269,6 +272,19 @@ export class Scanner {
     this.addToken(keywordTokenType || TokenType.IDENTIFIER);
   }
 
+  private commentBlock() {
+    while (!(this.peek() === '*' && this.peekNext() === '/')) {
+      this.advance();
+    }
+
+    // "*"
+    this.advance();
+    // "/"
+    this.advance();
+
+    this.addToken(TokenType.COMMENT_BLOCK);
+  }
+
   private scanToken(): void {
     const char = this.advance();
     switch (char) {
@@ -348,6 +364,8 @@ export class Scanner {
             this.advance();
           }
           this.addToken(TokenType.COMMENT);
+        }else if (this.match('*')) {
+          this.commentBlock();
         } else {
           this.addToken(TokenType.SLASH);
         }
