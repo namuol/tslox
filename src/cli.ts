@@ -25,6 +25,7 @@ async function runPrompt() {
       rl.question(prompt, answer => resolve(answer));
     });
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const line = await question('> ');
     const {err: errors} = await run(line, '[tslox]');
@@ -32,7 +33,11 @@ async function runPrompt() {
     if (errors) {
       for (const err of errors) {
         const prefix = err.location
-          ? `[${err.location.start.line}:${err.location.start.column}]: `
+          ? `[${err.location.start.line}:${err.location.start.column}${
+              err.location.end
+                ? `-${err.location.end.line}:${err.location.end.column}`
+                : ''
+            }]: `
           : '';
         console.error(`${prefix}${err.message}`);
       }
