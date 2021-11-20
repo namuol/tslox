@@ -2,7 +2,7 @@ import {Result, ok, err} from './Result';
 import {LoxError} from './LoxError';
 import {SourceLocation} from './SourceLocation';
 
-enum TokenType {
+export enum TokenType {
   // Single-character tokens.
   LEFT_PAREN = 'LEFT_PAREN',
   RIGHT_PAREN = 'RIGHT_PAREN',
@@ -75,17 +75,13 @@ const KEYWORDS = new Map<string, TokenType>([
   ['while', TokenType.WHILE],
 ]);
 
-class Token {
-  type: TokenType;
-  lexeme: string;
-  line: number;
-  column: number;
-  constructor(type: TokenType, lexeme: string, line: number, column: number) {
-    this.type = type;
-    this.lexeme = lexeme;
-    this.line = line;
-    this.column = column;
-  }
+export class Token {
+  constructor(
+    readonly type: TokenType,
+    readonly lexeme: string,
+    readonly line: number,
+    readonly column: number
+  ) {}
 }
 
 class ScannerError implements LoxError {

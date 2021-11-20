@@ -1,0 +1,16 @@
+// Backus-Naur form written in itself (also with comments):
+
+grammar → grammar grammar ;
+grammar → rule ;
+grammar → COMMENT ;
+grammar → newlines grammar ;
+grammar → grammar newlines ;
+
+newlines → "\n" ;
+newlines → newlines newlines ;
+
+rule → WORD "→" body ";" ;
+
+body → WORD ;
+body → STRING ;
+body → body body ;
