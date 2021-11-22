@@ -5,6 +5,7 @@ import {
   Literal,
   Unary,
   Visitor,
+  InvalidExpression,
 } from './Expression';
 
 /**
@@ -33,5 +34,9 @@ export class RpnPrinter implements Visitor<string> {
 
   Unary(expr: Unary): string {
     return [this.print(expr.right), expr.operator.lexeme].join(' ');
+  }
+
+  InvalidExpression(expr: InvalidExpression): string {
+    return `<<Error: ${expr.message}>>`;
   }
 }

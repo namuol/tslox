@@ -82,24 +82,18 @@ export class Token {
     readonly line: number,
     readonly column: number
   ) {}
+
+  getSourceLocation(filename: string): SourceLocation {
+    return {
+      filename,
+      start: {line: this.line, column: this.column},
+      // We assume tokens cannot span multiple lines
+    };
+  }
 }
 
 class ScannerError implements LoxError {
-  message: string;
-  location: SourceLocation;
-  constructor(
-    message: string,
-    filename: string,
-    start: {line: number; column?: number},
-    end?: {line: number; column?: number}
-  ) {
-    this.message = message;
-    this.location = {
-      filename,
-      start,
-      end,
-    };
-  }
+  constructor(readonly message: string, readonly location: SourceLocation) {}
 }
 
 export class Scanner {
@@ -175,12 +169,11 @@ export class Scanner {
 
   private error(message: string) {
     this.errors.push(
-      new ScannerError(
-        message,
-        this.filename,
-        {line: this.lineStart, column: this.columnStart},
-        {line: this.line, column: this.column}
-      )
+      new ScannerError(message, {
+        filename: this.filename,
+        start: {line: this.lineStart, column: this.columnStart},
+        end: {line: this.line, column: this.column},
+      })
     );
   }
 

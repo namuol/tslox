@@ -4,38 +4,57 @@ import {AstPrinter} from './AstPrinter';
 
 const num = n => new Token(TokenType.NUMBER, n.toString(10), 0, 0);
 const str = s => new Token(TokenType.STRING, JSON.stringify(s), 0, 0);
-const lparen = new Token(TokenType.LEFT_PAREN, '(', 0, 0);
-const rparen = new Token(TokenType.RIGHT_PAREN, ')', 0, 0);
-const plus = new Token(TokenType.PLUS, '+', 0, 0);
-const minus = new Token(TokenType.MINUS, '-', 0, 0);
-const star = new Token(TokenType.STAR, '*', 0, 0);
-const slash = new Token(TokenType.SLASH, '/', 0, 0);
-const eq = new Token(TokenType.EQUAL, '==', 0, 0);
-const bang = new Token(TokenType.BANG, '!', 0, 0);
-const eqeq = new Token(TokenType.EQUAL_EQUAL, '==', 0, 0);
-const neq = new Token(TokenType.BANG_EQUAL, '!=', 0, 0);
-const boolTrue = new Token(TokenType.TRUE, 'true', 0, 0);
-const boolFalse = new Token(TokenType.FALSE, 'false', 0, 0);
-const nil = new Token(TokenType.NIL, 'nil', 0, 0);
 
-type Case = [string, Token[], string];
+const TOKENS = {
+  '(': new Token(TokenType.LEFT_PAREN, '(', 0, 0),
+  ')': new Token(TokenType.RIGHT_PAREN, ')', 0, 0),
+  '=': new Token(TokenType.EQUAL, '==', 0, 0),
+  '==': new Token(TokenType.EQUAL_EQUAL, '==', 0, 0),
+  '!=': new Token(TokenType.BANG_EQUAL, '!=', 0, 0),
+  '>': new Token(TokenType.GREATER, '>', 0, 0),
+  '>=': new Token(TokenType.GREATER_EQUAL, '>=', 0, 0),
+  '<': new Token(TokenType.LESS, '<', 0, 0),
+  '<=': new Token(TokenType.LESS_EQUAL, '<=', 0, 0),
+  '+': new Token(TokenType.PLUS, '+', 0, 0),
+  '-': new Token(TokenType.MINUS, '-', 0, 0),
+  '*': new Token(TokenType.STAR, '*', 0, 0),
+  '/': new Token(TokenType.SLASH, '/', 0, 0),
+  '!': new Token(TokenType.BANG, '!', 0, 0),
+  true: new Token(TokenType.TRUE, 'true', 0, 0),
+  false: new Token(TokenType.FALSE, 'false', 0, 0),
+  nil: new Token(TokenType.NIL, 'nil', 0, 0),
+};
+
+type ShorthandToken = keyof typeof TOKENS | number | Token;
+type Case = [string, ShorthandToken[], string];
+const invalidUnaryOps: ShorthandToken[] = [
+  '==',
+  '!=',
+  '>',
+  '>=',
+  '<',
+  '<=',
+  '+',
+  '/',
+  '*',
+];
 
 // prettier-ignore
 const cases: Case[] = [
-  ['addition', [num(1), plus, num(2)], '(+ 1 2)'],
-  ['subtraction', [num(1), minus, num(2)], '(- 1 2)'],
-  ['multiplication', [num(1), star, num(2)], '(* 1 2)'],
-  ['division', [num(1), slash, num(2)], '(/ 1 2)'],
+  ['addition', [1, '+', 2], '(+ 1 2)'],
+  ['subtraction', [num(1), '-', num(2)], '(- 1 2)'],
+  ['multiplication', [num(1), '*', num(2)], '(* 1 2)'],
+  ['division', [num(1), '/', num(2)], '(/ 1 2)'],
   ['addition then multiplication',
-    [num(1), plus, num(2), star, num(3)],
+    [num(1), '+', num(2), '*', num(3)],
     '(+ 1 (* 2 3))',
   ],
   ['multiplication then addition',
-    [num(1), star, num(2), plus, num(3)],
+    [num(1), '*', num(2), '+', num(3)],
     '(+ (* 1 2) 3)',
   ],
   ['parenthesis get precedence',
-    [lparen, num(1), plus, num(2), rparen, star, num(3)],
+    ['(', num(1), '+', num(2), ')', '*', num(3)],
     '(* (group (+ 1 2)) 3)',
   ],
   ['string',
@@ -47,32 +66,57 @@ const cases: Case[] = [
     '1.23456789'
   ],
   ['negative number',
-    [minus, num(42)],
+    ['-', num(42)],
     '(- 42)'
   ],
   ['double-negative number',
-    [minus, minus, num(42)],
+    ['-', '-', num(42)],
     '(- (- 42))'
   ],
-  ['true', [boolTrue], 'true'],
-  ['false', [boolFalse], 'false'],
-  ['nil', [nil], 'nil'],
+  ['true', ['true'], 'true'],
+  ['false', ['false'], 'false'],
+  ['nil', ['nil'], 'nil'],
   ['not true',
-    [bang, boolTrue],
+    ['!', 'true'],
     '(! true)'
   ],
   ['not true',
-    [bang, bang, boolTrue],
+    ['!', '!', 'true'],
     '(! (! true))'
   ],
+  ...invalidUnaryOps.map((op: ShorthandToken): Case => ([
+    `invalid unary ${op}`,
+    [op, 42],
+    `<<Error: Missing left-hand operand for '${op}' operator>>`
+  ])),
 ];
 
 const printer = new AstPrinter();
 describe('Parser', () => {
   describe('parse', () => {
-    for (const [caseName, tokens, expected] of cases) {
+    for (const [caseName, shorthandTokens, expected] of cases) {
       test(caseName, () => {
-        expect(printer.print(new Parser(tokens).parse())).toEqual(expected);
+        const tokens: Token[] = shorthandTokens.map(s => {
+          if (s instanceof Token) {
+            return s;
+          }
+
+          if (typeof s === 'string') {
+            return TOKENS[s];
+          }
+
+          if (typeof s === 'number') {
+            return num(s);
+          }
+
+          return str(s);
+        });
+
+        const result = new Parser(tokens, 'test.lox').parse();
+        if (result.err) {
+          throw result.err;
+        }
+        expect(printer.print(result.val)).toEqual(expected);
       });
     }
   });

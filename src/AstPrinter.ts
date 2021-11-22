@@ -5,6 +5,7 @@ import {
   Literal,
   Unary,
   Visitor,
+  InvalidExpression,
 } from './Expression';
 
 export class AstPrinter implements Visitor<string> {
@@ -30,5 +31,9 @@ export class AstPrinter implements Visitor<string> {
 
   Unary(expr: Unary): string {
     return this.parenthesize(expr.operator.lexeme, expr.right);
+  }
+
+  InvalidExpression(expr: InvalidExpression): string {
+    return `<<Error: ${expr.message}>>`;
   }
 }

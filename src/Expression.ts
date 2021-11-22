@@ -5,6 +5,7 @@ export interface Visitor<T> {
   Grouping(expr: Grouping): T;
   Literal(expr: Literal): T;
   Unary(expr: Unary): T;
+  InvalidExpression(expr: InvalidExpression): T;
 }
 
 export abstract class Expression {
@@ -58,6 +59,28 @@ export class Unary extends Expression {
   }
 
   constructor(readonly operator: Token, readonly right: Expression) {
+    super();
+  }
+}
+
+/**
+ * Useful for reporting parser errors by explicitly parsing and understanding
+ * common mistakes.
+ */
+export abstract class InvalidExpression extends Expression {
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.InvalidExpression(this);
+  }
+
+  abstract readonly message: string;
+}
+
+export class InvalidUnary extends InvalidExpression {
+  constructor(
+    readonly message: string,
+    readonly op: Token,
+    readonly right: Expression
+  ) {
     super();
   }
 }

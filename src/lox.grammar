@@ -4,6 +4,8 @@ comparison      → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term            → factor ( ( "+" | "-" ) factor )* ;
 factor          → unary ( ( "/" | "*" ) unary )* ;
 unary           → ( "!" | "-" ) unary
+                | invalidUnary ;
+invalidUnary    → ( "==" | "!=" | ">" | ">=" | "<" | "<=" | "+" | "/" | "*" ) invalidUnary
                 | primary ;
 primary         → NUMBER | STRING | "true" | "false" | "nil"
                 | "(" expression ")" ;
