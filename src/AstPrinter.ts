@@ -25,7 +25,7 @@ export class AstPrinter implements Visitor<string> {
   }
 
   Literal(expr: Literal): string {
-    return expr.value ? expr.value.toString() : 'nil';
+    return expr.value != null ? JSON.stringify(expr.value) : 'nil';
   }
 
   Unary(expr: Unary): string {
