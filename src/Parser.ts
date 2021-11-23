@@ -5,7 +5,7 @@ import * as e from './Expression';
 import {Lox} from './Lox';
 import {Result, ok, err} from './Result';
 
-class ParseError implements LoxError {
+export class ParseError implements LoxError {
   constructor(
     readonly message: string,
     readonly location?: SourceLocation | undefined

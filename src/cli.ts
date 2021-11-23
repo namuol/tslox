@@ -28,10 +28,10 @@ async function runPrompt() {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const line = await question('> ');
-    const {err: errors} = await run(line, '[tslox]');
+    const result = await run(line, '[tslox]');
 
-    if (errors) {
-      for (const err of errors) {
+    if (result.err) {
+      for (const err of result.err) {
         const prefix = err.location
           ? `[${err.location.start.line}:${err.location.start.column}${
               err.location.end
@@ -42,6 +42,8 @@ async function runPrompt() {
         console.error(`${prefix}${err.message}`);
       }
     }
+
+    console.log(result.val);
   }
 }
 
