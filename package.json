@@ -4,7 +4,7 @@
   "description": "TypeScript implementation of Lox, the programming language from the book \"Crafting Interpreters\" by Robert Nystrom",
   "author": "Lou Acresti (louis.acresti@gmail.com)",
   "license": "ISC",
-  "main": "index.js",
+  "main": "./lib/Lox.js",
   "bin": {
     "tslox": "./lib/cli.js"
   },

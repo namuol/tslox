@@ -1,12 +1,5 @@
-import {
-  Expression,
-  Binary,
-  Grouping,
-  Literal,
-  Unary,
-  Visitor,
-  InvalidExpression,
-} from './Expression';
+import * as e from './Expression';
+import * as s from './Statement';
 import {LoxError} from './LoxError';
 import {LoxValue, valueToString, print} from './LoxValue';
 import {ParseError} from './Parser';
@@ -61,18 +54,52 @@ function isTruthy(right: LoxValue) {
   return right !== null;
 }
 
-export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
+export class Interpreter
+  implements
+    e.Visitor<Result<LoxError, LoxValue>>,
+    s.Visitor<Result<LoxError, LoxValue>>
+{
   constructor(private readonly filename: string) {}
+  Expr(stmt: s.Expr): Result<LoxError, LoxValue> {
+    return stmt.expr.accept(this);
+  }
 
-  interpret(expr: Expression): Result<LoxError, LoxValue> {
+  Print(stmt: s.Print): Result<LoxError, LoxValue> {
+    const result = stmt.expr.accept(this);
+    if (result.val) {
+      console.log('  ' + print(result.val));
+    }
+    return ok(null);
+  }
+
+  interpret(program: s.Statement[]): Result<LoxError, void | LoxValue> {
+    let result: void | Result<LoxError, LoxValue>;
+
+    for (const stmt of program) {
+      result = this.execute(stmt);
+      if (result.err) return result;
+    }
+
+    if (result) {
+      return result;
+    }
+
+    return ok(undefined);
+  }
+
+  execute(stmt: s.Statement): Result<LoxError, LoxValue> {
+    return stmt.accept(this);
+  }
+
+  expression(expr: e.Expression): Result<LoxError, LoxValue> {
     return expr.accept(this);
   }
 
-  Binary(expr: Binary): Result<LoxError, LoxValue> {
-    const left_ = this.interpret(expr.left);
+  Binary(expr: e.Binary): Result<LoxError, LoxValue> {
+    const left_ = this.expression(expr.left);
     if (left_.val === undefined) return left_;
     const left = left_.val;
-    const right_ = this.interpret(expr.right);
+    const right_ = this.expression(expr.right);
     if (right_.val === undefined) return right_;
     const right = right_.val;
 
@@ -136,16 +163,16 @@ export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
     }
   }
 
-  Grouping(expr: Grouping): Result<LoxError, LoxValue> {
-    return this.interpret(expr.expr);
+  Grouping(expr: e.Grouping): Result<LoxError, LoxValue> {
+    return this.expression(expr.expr);
   }
 
-  Literal(expr: Literal): Result<LoxError, LoxValue> {
+  Literal(expr: e.Literal): Result<LoxError, LoxValue> {
     return ok(expr.value);
   }
 
-  Unary(expr: Unary): Result<LoxError, LoxValue> {
-    const right_ = this.interpret(expr.right);
+  Unary(expr: e.Unary): Result<LoxError, LoxValue> {
+    const right_ = this.expression(expr.right);
     if (right_.val === undefined) return right_;
     const right = right_.val;
 
@@ -177,7 +204,7 @@ export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
     }
   }
 
-  InvalidExpression(expr: InvalidExpression): Result<LoxError, LoxValue> {
+  InvalidExpression(expr: e.InvalidExpression): Result<LoxError, LoxValue> {
     return err(new ParseError(expr.message));
   }
 }

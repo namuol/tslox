@@ -37,10 +37,9 @@ describe('Interpreter', () => {
         const scannerResult = new Scanner(program, 'test.lox').scanTokens();
         if (scannerResult.err) throw scannerResult.err;
 
-        const parserResult = new Parser(scannerResult.val, 'test.lox').parse();
-        if (parserResult.err) throw parserResult.err;
+        const val = new Parser(scannerResult.val, 'test.lox').expression();
 
-        expect(interpreter.interpret(parserResult.val).val).toEqual(expected);
+        expect(interpreter.expression(val).val).toEqual(expected);
       });
     }
   });

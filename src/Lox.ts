@@ -12,24 +12,16 @@ export class Lox {
   static async run(
     program: string,
     filename: string
-  ): Promise<Result<LoxError[], LoxValue>> {
+  ): Promise<Result<LoxError[], void | LoxValue>> {
     const scannerResult = new Scanner(program, filename).scanTokens();
-
-    if (scannerResult.err) {
-      return scannerResult;
-    }
+    if (scannerResult.err) return scannerResult;
 
     const parserResult = new Parser(scannerResult.val, filename).parse();
-    if (parserResult.err) {
-      return parserResult;
-    }
+    if (parserResult.err) return parserResult;
 
     const result = new Interpreter(filename).interpret(parserResult.val);
+    if (result.err) return err([result.err]);
 
-    if (result.err) {
-      return err([result.err]);
-    }
-
-    return ok(result.val);
+    return result;
   }
 }

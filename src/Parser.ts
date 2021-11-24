@@ -2,7 +2,9 @@ import {Token, TokenType} from './Scanner';
 import {LoxError} from './LoxError';
 import {SourceLocation} from './SourceLocation';
 import * as e from './Expression';
+import * as s from './Statement';
 import {Result, ok, err} from './Result';
+import exp from 'constants';
 
 export class ParseError implements LoxError {
   constructor(
@@ -13,24 +15,51 @@ export class ParseError implements LoxError {
 
 export class Parser {
   private tokenIndex: number;
+  private errors: LoxError[];
 
   constructor(
     private readonly tokens: Token[],
     private readonly filename: string
   ) {
     this.tokenIndex = 0;
+    this.errors = [];
   }
 
-  parse(): Result<LoxError[], e.Expression> {
-    try {
-      return ok(this.expression());
-    } catch (e) {
-      if (e instanceof ParseError) {
-        return err([e]);
-      }
+  printStatement(): s.Print {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value");
+    return new s.Print(expr);
+  }
 
-      throw e;
+  expressionStatement(): s.Expr {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
+    return new s.Expr(expr);
+  }
+
+  statement(): s.Statement {
+    if (this.match(TokenType.PRINT)) return this.printStatement();
+    return this.expressionStatement();
+  }
+
+  parse(): Result<LoxError[], s.Statement[]> {
+    const statements: s.Statement[] = [];
+    while (!this.isAtEnd()) {
+      try {
+        statements.push(this.statement());
+      } catch (e) {
+        if (e instanceof ParseError) {
+          this.errors.push(e);
+          this.synchronize();
+        } else {
+          throw e;
+        }
+      }
     }
+
+    if (this.errors.length > 0) return err(this.errors);
+
+    return ok(statements);
   }
 
   private match(...tokenTypes: TokenType[]): boolean {
@@ -45,7 +74,7 @@ export class Parser {
   }
 
   private peek(): Token {
-    return this.tokens[this.tokenIndex];
+    return this.tokens[this.tokenIndex] || new Token(TokenType.EOF, '', 0, 0);
   }
 
   private advance(): Token {
@@ -64,7 +93,7 @@ export class Parser {
   private consume(type: TokenType, message: string) {
     if (this.peek().type === type) return this.advance();
 
-    throw this.error(this.peek(), message);
+    throw this.error(this.peek(), message + '; got ' + this.peek().type);
   }
 
   private error(token: Token, message: string) {
@@ -97,7 +126,7 @@ export class Parser {
   }
 
   // expression      → equality ;
-  private expression(): e.Expression {
+  expression(): e.Expression {
     return this.equality();
   }
 
@@ -214,7 +243,10 @@ export class Parser {
         return new e.Grouping(token, expr, this.previous());
       }
       default: {
-        throw this.error(token, 'Expected expression.');
+        throw this.error(
+          token,
+          `Unexpected token '${token.type}' - expected expression.`
+        );
       }
     }
   }

@@ -112,11 +112,9 @@ describe('Parser', () => {
           return str(s);
         });
 
-        const result = new Parser(tokens, 'test.lox').parse();
-        if (result.err) {
-          throw result.err;
-        }
-        expect(printer.print(result.val)).toEqual(expected);
+        const expr = new Parser(tokens, 'test.lox').expression();
+
+        expect(printer.print(expr)).toEqual(expected);
       });
     }
   });
