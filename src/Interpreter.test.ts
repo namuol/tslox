@@ -21,10 +21,12 @@ const cases: Case[] = [
   ['false', 'false', false],
   ['nil', 'nil', null],
   ['not true', '!true', false],
-  ['not true', '!!true', true],
+  ['not not true', '!!true', true],
+  ['string concat', '"Hello, " + "world!"', 'Hello, world!'],
+  ['NaN equals NaN', '(0/0) == (0/0)', true],
 ];
 
-const interpreter = new Interpreter();
+const interpreter = new Interpreter('test.lox');
 describe('Interpreter', () => {
   describe('interpret', () => {
     for (const [caseName, program, expected] of cases) {

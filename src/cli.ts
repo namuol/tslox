@@ -3,6 +3,7 @@ import {docopt} from 'docopt';
 import {promises as fs} from 'fs';
 import {run} from './index';
 import * as readline from 'readline';
+import {print} from './LoxValue';
 
 const usage = `
 Usage: tslox [<script>]
@@ -28,6 +29,9 @@ async function runPrompt() {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const line = await question('> ');
+    if (line.trim().length === 0) {
+      continue;
+    }
     const result = await run(line, '[tslox]');
 
     if (result.err) {
@@ -41,9 +45,9 @@ async function runPrompt() {
           : '';
         console.error(`${prefix}${err.message}`);
       }
+    } else {
+      console.log(print(result.val));
     }
-
-    console.log(result.val);
   }
 }
 

@@ -8,52 +8,62 @@ import {
   InvalidExpression,
 } from './Expression';
 import {LoxError} from './LoxError';
-import {LoxValue} from './LoxValue';
+import {LoxValue, valueToString, print} from './LoxValue';
 import {ParseError} from './Parser';
 import {Result, ok, err} from './Result';
-import {TokenType} from './Scanner';
+import {Token, TokenType} from './Scanner';
 import {SourceLocation} from './SourceLocation';
 
 export class LoxRuntimeError implements LoxError {
+  location: SourceLocation;
+
   constructor(
+    readonly token: Token,
     readonly message: string,
-    readonly location?: SourceLocation | undefined
-  ) {}
+    filename: string
+  ) {
+    this.location = token.getSourceLocation(filename);
+  }
 }
 
 const makeMathDoer =
-  <T>(verb: string, fn: (a: number, b: number) => LoxValue) =>
-  (a: LoxValue, b: LoxValue): Result<LoxError, LoxValue> => {
+  (verb: string, fn: (a: number, b: number) => LoxValue) =>
+  (
+    filename: string,
+    token: Token,
+    a: LoxValue,
+    b: LoxValue
+  ): Result<LoxError, LoxValue> => {
     if (typeof a !== 'number' || typeof b !== 'number') {
       return err(
-        new LoxRuntimeError(`Cannot ${verb} ${typeof a} and ${typeof b} - expected numbers`)
+        new LoxRuntimeError(
+          token,
+          `Cannot ${verb} ${typeof a} (${print(a)}) and ${typeof b} (${print(
+            b
+          )}) - expected two numbers`,
+          filename
+        )
       );
     }
     return ok(fn(a, b));
   };
 
-const add = makeMathDoer('add', (a, b) => a + b);
 const subtract = makeMathDoer('subtract', (a, b) => a - b);
 const multiply = makeMathDoer('multiply', (a, b) => a * b);
 const divide = makeMathDoer('divide', (a, b) => a / b);
+const gt = makeMathDoer('compare', (a, b) => a > b);
+const geq = makeMathDoer('compare', (a, b) => a >= b);
+const lt = makeMathDoer('compare', (a, b) => a < b);
+const leq = makeMathDoer('compare', (a, b) => a <= b);
 
-const makeCompareDoer =
-  <T>(fn: (a: boolean, b: boolean) => LoxValue) =>
-  (a: LoxValue, b: LoxValue): Result<LoxError, LoxValue> => {
-    if (typeof a !== 'boolean' || typeof b !== 'boolean') {
-      return err(
-        new LoxRuntimeError(`Cannot compare ${typeof a} and ${typeof b} - expected booleans`)
-      );
-    }
-    return ok(fn(a, b));
-  };
-
-const gt = makeCompareDoer((a, b) => a > b);
-const geq = makeCompareDoer((a, b) => a >= b);
-const lt = makeCompareDoer((a, b) => a < b);
-const leq = makeCompareDoer((a, b) => a <= b);
+function isTruthy(right: LoxValue) {
+  if (typeof right === 'boolean') return right;
+  return right !== null;
+}
 
 export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
+  constructor(private readonly filename: string) {}
+
   interpret(expr: Expression): Result<LoxError, LoxValue> {
     return expr.accept(this);
   }
@@ -71,36 +81,55 @@ export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
         return ok(left !== right);
       }
       case TokenType.EQUAL_EQUAL: {
+        if (Number.isNaN(left) && Number.isNaN(right)) {
+          return ok(true);
+        }
+
         return ok(left === right);
       }
       case TokenType.GREATER: {
-        return gt(left, right);
+        return gt(this.filename, expr.operator, left, right);
       }
       case TokenType.GREATER_EQUAL: {
-        return geq(left, right);
+        return geq(this.filename, expr.operator, left, right);
       }
       case TokenType.LESS: {
-        return lt(left, right);
+        return lt(this.filename, expr.operator, left, right);
       }
       case TokenType.LESS_EQUAL: {
-        return leq(left, right);
+        return leq(this.filename, expr.operator, left, right);
       }
       case TokenType.PLUS: {
-        return add(left, right);
+        if (typeof left === 'string' || typeof right === 'string') {
+          return ok(valueToString(left) + valueToString(right));
+        }
+        if (typeof left === 'number' && typeof right === 'number') {
+          return ok(left + right);
+        }
+
+        return err(
+          new LoxRuntimeError(
+            expr.operator,
+            `Cannot add ${typeof left} and ${typeof right} - expected two numbers, or at least one string`,
+            this.filename
+          )
+        );
       }
       case TokenType.MINUS: {
-        return subtract(left, right);
+        return subtract(this.filename, expr.operator, left, right);
       }
       case TokenType.SLASH: {
-        return divide(left, right);
+        return divide(this.filename, expr.operator, left, right);
       }
       case TokenType.STAR: {
-        return multiply(left, right);
+        return multiply(this.filename, expr.operator, left, right);
       }
       default: {
         return err(
           new LoxRuntimeError(
-            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`
+            expr.operator,
+            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`,
+            this.filename
           )
         );
       }
@@ -122,17 +151,16 @@ export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
 
     switch (expr.operator.type) {
       case TokenType.BANG: {
-        if (typeof right !== 'boolean') {
-          return err(
-            new LoxRuntimeError(`Cannot logically negate ${typeof right} - expected boolean`)
-          );
-        }
-        return ok(!right);
+        return ok(!isTruthy(right));
       }
       case TokenType.MINUS: {
         if (typeof right !== 'number') {
           return err(
-            new LoxRuntimeError(`Cannot negate ${typeof right} - expected number`)
+            new LoxRuntimeError(
+              expr.operator,
+              `Cannot negate ${typeof right} - expected number`,
+              this.filename
+            )
           );
         }
         return ok(-right);
@@ -140,7 +168,9 @@ export class Interpreter implements Visitor<Result<LoxError, LoxValue>> {
       default: {
         return err(
           new LoxRuntimeError(
-            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`
+            expr.operator,
+            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`,
+            this.filename
           )
         );
       }

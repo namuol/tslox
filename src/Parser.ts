@@ -2,7 +2,6 @@ import {Token, TokenType} from './Scanner';
 import {LoxError} from './LoxError';
 import {SourceLocation} from './SourceLocation';
 import * as e from './Expression';
-import {Lox} from './Lox';
 import {Result, ok, err} from './Result';
 
 export class ParseError implements LoxError {
@@ -69,7 +68,6 @@ export class Parser {
   }
 
   private error(token: Token, message: string) {
-    Lox.error(this.filename, token, message);
     return new ParseError(message, token.getSourceLocation(this.filename));
   }
 
