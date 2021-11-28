@@ -6,6 +6,8 @@ import {
   Unary,
   Visitor,
   InvalidExpression,
+  Variable,
+  Assignment,
 } from './Expression';
 
 export class AstPrinter implements Visitor<string> {
@@ -15,6 +17,14 @@ export class AstPrinter implements Visitor<string> {
 
   print(expr: Expression): string {
     return expr.accept(this);
+  }
+
+  Assignment(expr: Assignment): string {
+    return `(= ${expr.name.lexeme} ${this.print(expr.value)})`;
+  }
+  
+  Variable(expr: Variable): string {
+    return expr.name.lexeme;
   }
 
   Binary(expr: Binary): string {

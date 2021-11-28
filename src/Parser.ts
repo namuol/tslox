@@ -4,13 +4,17 @@ import {SourceLocation} from './SourceLocation';
 import * as e from './Expression';
 import * as s from './Statement';
 import {Result, ok, err} from './Result';
-import exp from 'constants';
+import {HasSourceLocation} from './HasSourceLocation';
 
-export class ParseError implements LoxError {
+export class LoxParseError implements LoxError {
   constructor(
     readonly message: string,
-    readonly location?: SourceLocation | undefined
+    private readonly locationSource: HasSourceLocation
   ) {}
+
+  getLocation(filename: string): SourceLocation {
+    return this.locationSource.getLocation(filename);
+  }
 }
 
 export class Parser {
@@ -25,30 +29,13 @@ export class Parser {
     this.errors = [];
   }
 
-  printStatement(): s.Print {
-    const expr = this.expression();
-    this.consume(TokenType.SEMICOLON, "Expect ';' after value");
-    return new s.Print(expr);
-  }
-
-  expressionStatement(): s.Expr {
-    const expr = this.expression();
-    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
-    return new s.Expr(expr);
-  }
-
-  statement(): s.Statement {
-    if (this.match(TokenType.PRINT)) return this.printStatement();
-    return this.expressionStatement();
-  }
-
   parse(): Result<LoxError[], s.Statement[]> {
     const statements: s.Statement[] = [];
     while (!this.isAtEnd()) {
       try {
-        statements.push(this.statement());
+        statements.push(this.declaration());
       } catch (e) {
-        if (e instanceof ParseError) {
+        if (e instanceof LoxParseError) {
           this.errors.push(e);
           this.synchronize();
         } else {
@@ -60,6 +47,43 @@ export class Parser {
     if (this.errors.length > 0) return err(this.errors);
 
     return ok(statements);
+  }
+
+  declaration(): s.Statement {
+    if (this.match(TokenType.VAR)) return this.varDeclaration();
+    return this.statement();
+  }
+
+  varDeclaration(): s.Statement {
+    const identifier = this.consume(
+      TokenType.IDENTIFIER,
+      'Expected variable name'
+    );
+
+    let initializer = null;
+    if (this.match(TokenType.EQUAL)) {
+      initializer = this.expression();
+    }
+
+    this.consume(TokenType.SEMICOLON, "Expected ';' after expression");
+    return new s.Var(identifier, initializer);
+  }
+
+  statement(): s.Statement {
+    if (this.match(TokenType.PRINT)) return this.printStatement();
+    return this.expressionStatement();
+  }
+
+  printStatement(): s.Print {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value");
+    return new s.Print(expr);
+  }
+
+  expressionStatement(): s.Expr {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
+    return new s.Expr(expr);
   }
 
   private match(...tokenTypes: TokenType[]): boolean {
@@ -97,7 +121,7 @@ export class Parser {
   }
 
   private error(token: Token, message: string) {
-    return new ParseError(message, token.getSourceLocation(this.filename));
+    return new LoxParseError(message, token);
   }
 
   /**
@@ -125,9 +149,28 @@ export class Parser {
     }
   }
 
-  // expression      → equality ;
+  // expression      → assignment ;
   expression(): e.Expression {
-    return this.equality();
+    return this.assignment();
+  }
+
+  // assignment      → IDENTIFIER "=" assignment
+  //                 | equality ;
+  assignment(): e.Expression {
+    const expr = this.equality();
+
+    if (this.match(TokenType.EQUAL)) {
+      const equals = this.previous();
+      const value = this.assignment();
+      
+      if (expr instanceof e.Variable) {
+        return new e.Assignment(expr.name, value);
+      }
+
+      throw this.error(equals, 'Invalid assignment target');
+    }
+
+    return expr;
   }
 
   // equality        → comparison ( ( "==" | "!=" ) comparison)* ;
@@ -222,8 +265,10 @@ export class Parser {
     return this.primary();
   }
 
-  // primary         → NUMBER | STRING | "true" | "false" | "nil"
-  //                 | "(" expression ")" ;
+  // primary         → "true" | "false" | "nil"
+  //                 | NUMBER | STRING
+  //                 | "(" expression ")"
+  //                 | IDENTIFIER
   private primary(): e.Expression {
     const token = this.advance();
     switch (token.type) {
@@ -241,6 +286,9 @@ export class Parser {
         const expr = this.expression();
         this.consume(TokenType.RIGHT_PAREN, "Expected ')' after expression.");
         return new e.Grouping(token, expr, this.previous());
+      }
+      case TokenType.IDENTIFIER: {
+        return new e.Variable(token);
       }
       default: {
         throw this.error(

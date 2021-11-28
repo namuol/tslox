@@ -1,4 +1,4 @@
-import {Result, ok, err} from './Result';
+import {Result, err} from './Result';
 import {Scanner} from './Scanner';
 import {LoxError} from './LoxError';
 import {Parser} from './Parser';
@@ -20,6 +20,24 @@ export class Lox {
     if (parserResult.err) return parserResult;
 
     const result = new Interpreter(filename).interpret(parserResult.val);
+    if (result.err) return err([result.err]);
+
+    return result;
+  }
+
+  private readonly interpreter: Interpreter;
+  constructor(private readonly filename: string) {
+    this.interpreter = new Interpreter(filename);
+  }
+
+  async eval(programFragment: string): Promise<Result<LoxError[], void | LoxValue>> {
+    const scannerResult = new Scanner(programFragment, this.filename).scanTokens();
+    if (scannerResult.err) return scannerResult;
+
+    const parserResult = new Parser(scannerResult.val, this.filename).parse();
+    if (parserResult.err) return parserResult;
+
+    const result = this.interpreter.interpret(parserResult.val);
     if (result.err) return err([result.err]);
 
     return result;

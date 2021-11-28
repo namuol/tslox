@@ -2,7 +2,7 @@
 import {docopt} from 'docopt';
 import {promises as fs} from 'fs';
 import * as readline from 'readline';
-import { Interpreter } from './Interpreter';
+import {Interpreter} from './Interpreter';
 import {Lox} from './Lox';
 import {print} from './LoxValue';
 
@@ -27,6 +27,9 @@ async function runPrompt() {
       rl.question(prompt, answer => resolve(answer));
     });
 
+  const filename = '[tslox]';
+  const lox = new Lox(filename);
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const line = await question('> ');
@@ -34,21 +37,20 @@ async function runPrompt() {
       continue;
     }
 
-    const result = await Lox.run(line, '[tslox]');
+    const result = await lox.eval(line);
     if (result.err) {
       for (const err of result.err) {
-        const prefix = err.location
-          ? `[${err.location.start.line}:${err.location.start.column}${
-              err.location.end
-                ? `-${err.location.end.line}:${err.location.end.column}`
-                : ''
+        const location = err.getLocation ? err.getLocation(filename) : null;
+        const prefix = location
+          ? `[${location.start.line}:${location.start.column}${
+              location.end ? `-${location.end.line}:${location.end.column}` : ''
             }]: `
           : '';
         console.error(`${prefix}${err.message}`);
       }
     } else {
       if (result.val !== undefined) {
-        console.log(print(result.val));
+        console.log(`(${print(result.val)})`);
       }
     }
   }

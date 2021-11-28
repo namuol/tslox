@@ -1,6 +1,7 @@
+import {HasSourceLocation} from './HasSourceLocation';
 import {SourceLocation} from './SourceLocation';
 
-export interface LoxError {
-  readonly message: string;
-  readonly location?: SourceLocation;
+export abstract class LoxError implements HasSourceLocation {
+  abstract readonly message: string;
+  abstract getLocation(filename: string): SourceLocation;
 }

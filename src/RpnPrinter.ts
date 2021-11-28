@@ -6,14 +6,23 @@ import {
   Unary,
   Visitor,
   InvalidExpression,
+  Variable,
+  Assignment,
 } from './Expression';
 
 /**
  * Implements Reverse Polish Notation (RPN) printing of expressions.
  */
 export class RpnPrinter implements Visitor<string> {
+  Assignment(expr: Assignment): string {
+    return [expr.name.lexeme, this.print(expr.value), '='].join(' ');
+  }
   print(expr: Expression): string {
     return expr.accept(this);
+  }
+
+  Variable(expr: Variable): string {
+    return expr.name.lexeme;
   }
 
   Binary(expr: Binary): string {

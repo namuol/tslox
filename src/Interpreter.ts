@@ -2,27 +2,25 @@ import * as e from './Expression';
 import * as s from './Statement';
 import {LoxError} from './LoxError';
 import {LoxValue, valueToString, print} from './LoxValue';
-import {ParseError} from './Parser';
+import {LoxParseError} from './Parser';
 import {Result, ok, err} from './Result';
 import {Token, TokenType} from './Scanner';
-import {SourceLocation} from './SourceLocation';
+import {HasSourceLocation} from './HasSourceLocation';
+import {Environment} from './Environment';
 
 export class LoxRuntimeError implements LoxError {
-  location: SourceLocation;
-
   constructor(
-    readonly token: Token,
-    readonly message: string,
-    filename: string
-  ) {
-    this.location = token.getSourceLocation(filename);
+    readonly locationSource: HasSourceLocation,
+    readonly message: string
+  ) {}
+  getLocation(filename: string) {
+    return this.locationSource.getLocation(filename);
   }
 }
 
 const makeMathDoer =
   (verb: string, fn: (a: number, b: number) => LoxValue) =>
   (
-    filename: string,
     token: Token,
     a: LoxValue,
     b: LoxValue
@@ -33,8 +31,7 @@ const makeMathDoer =
           token,
           `Cannot ${verb} ${typeof a} (${print(a)}) and ${typeof b} (${print(
             b
-          )}) - expected two numbers`,
-          filename
+          )}) - expected two numbers`
         )
       );
     }
@@ -59,7 +56,47 @@ export class Interpreter
     e.Visitor<Result<LoxError, LoxValue>>,
     s.Visitor<Result<LoxError, LoxValue>>
 {
+  private readonly environment: Environment = new Environment();
+
   constructor(private readonly filename: string) {}
+  Assignment(expr: e.Assignment): Result<LoxError, LoxValue> {
+    const result = this.evaluate(expr.value);
+    if (result.err) {
+      return result;
+    }
+
+    return this.environment.assign(expr.name, result.val);
+  }
+
+  Var(stmt: s.Var): Result<LoxError, LoxValue> {
+    let val: LoxValue = null;
+
+    if (stmt.initializer) {
+      const result = this.evaluate(stmt.initializer);
+      if (result.err !== undefined) {
+        return result;
+      }
+      val = result.val;
+    }
+
+    this.environment.define(stmt.name.lexeme, val);
+    return ok(val);
+  }
+
+  Variable(expr: e.Variable): Result<LoxError, LoxValue> {
+    const val = this.environment.get(expr.name.lexeme);
+    if (val === undefined) {
+      return err(
+        new LoxRuntimeError(
+          expr.name,
+          `Undefined variable '${expr.name.lexeme}'.`
+        )
+      );
+    }
+
+    return ok(val);
+  }
+
   Expr(stmt: s.Expr): Result<LoxError, LoxValue> {
     return stmt.expr.accept(this);
   }
@@ -67,7 +104,7 @@ export class Interpreter
   Print(stmt: s.Print): Result<LoxError, LoxValue> {
     const result = stmt.expr.accept(this);
     if (result.val) {
-      console.log('  ' + print(result.val));
+      console.log(valueToString(result.val));
     }
     return ok(null);
   }
@@ -91,15 +128,15 @@ export class Interpreter
     return stmt.accept(this);
   }
 
-  expression(expr: e.Expression): Result<LoxError, LoxValue> {
+  evaluate(expr: e.Expression): Result<LoxError, LoxValue> {
     return expr.accept(this);
   }
 
   Binary(expr: e.Binary): Result<LoxError, LoxValue> {
-    const left_ = this.expression(expr.left);
+    const left_ = this.evaluate(expr.left);
     if (left_.val === undefined) return left_;
     const left = left_.val;
-    const right_ = this.expression(expr.right);
+    const right_ = this.evaluate(expr.right);
     if (right_.val === undefined) return right_;
     const right = right_.val;
 
@@ -115,16 +152,16 @@ export class Interpreter
         return ok(left === right);
       }
       case TokenType.GREATER: {
-        return gt(this.filename, expr.operator, left, right);
+        return gt(expr.operator, left, right);
       }
       case TokenType.GREATER_EQUAL: {
-        return geq(this.filename, expr.operator, left, right);
+        return geq(expr.operator, left, right);
       }
       case TokenType.LESS: {
-        return lt(this.filename, expr.operator, left, right);
+        return lt(expr.operator, left, right);
       }
       case TokenType.LESS_EQUAL: {
-        return leq(this.filename, expr.operator, left, right);
+        return leq(expr.operator, left, right);
       }
       case TokenType.PLUS: {
         if (typeof left === 'string' || typeof right === 'string') {
@@ -137,26 +174,24 @@ export class Interpreter
         return err(
           new LoxRuntimeError(
             expr.operator,
-            `Cannot add ${typeof left} and ${typeof right} - expected two numbers, or at least one string`,
-            this.filename
+            `Cannot add ${typeof left} and ${typeof right} - expected two numbers, or at least one string`
           )
         );
       }
       case TokenType.MINUS: {
-        return subtract(this.filename, expr.operator, left, right);
+        return subtract(expr.operator, left, right);
       }
       case TokenType.SLASH: {
-        return divide(this.filename, expr.operator, left, right);
+        return divide(expr.operator, left, right);
       }
       case TokenType.STAR: {
-        return multiply(this.filename, expr.operator, left, right);
+        return multiply(expr.operator, left, right);
       }
       default: {
         return err(
           new LoxRuntimeError(
             expr.operator,
-            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`,
-            this.filename
+            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`
           )
         );
       }
@@ -164,7 +199,7 @@ export class Interpreter
   }
 
   Grouping(expr: e.Grouping): Result<LoxError, LoxValue> {
-    return this.expression(expr.expr);
+    return this.evaluate(expr.expr);
   }
 
   Literal(expr: e.Literal): Result<LoxError, LoxValue> {
@@ -172,7 +207,7 @@ export class Interpreter
   }
 
   Unary(expr: e.Unary): Result<LoxError, LoxValue> {
-    const right_ = this.expression(expr.right);
+    const right_ = this.evaluate(expr.right);
     if (right_.val === undefined) return right_;
     const right = right_.val;
 
@@ -185,8 +220,7 @@ export class Interpreter
           return err(
             new LoxRuntimeError(
               expr.operator,
-              `Cannot negate ${typeof right} - expected number`,
-              this.filename
+              `Cannot negate ${typeof right} - expected number`
             )
           );
         }
@@ -196,8 +230,7 @@ export class Interpreter
         return err(
           new LoxRuntimeError(
             expr.operator,
-            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`,
-            this.filename
+            `INTERNAL ERROR: Unexpected operator type: ${expr.operator.type}`
           )
         );
       }
@@ -205,6 +238,6 @@ export class Interpreter
   }
 
   InvalidExpression(expr: e.InvalidExpression): Result<LoxError, LoxValue> {
-    return err(new ParseError(expr.message));
+    return err(new LoxParseError(expr.message, expr));
   }
 }

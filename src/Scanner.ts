@@ -1,6 +1,7 @@
 import {Result, ok, err} from './Result';
 import {LoxError} from './LoxError';
 import {SourceLocation} from './SourceLocation';
+import { HasSourceLocation } from './HasSourceLocation';
 
 export enum TokenType {
   // Single-character tokens.
@@ -75,7 +76,7 @@ const KEYWORDS = new Map<string, TokenType>([
   ['while', TokenType.WHILE],
 ]);
 
-export class Token {
+export class Token implements HasSourceLocation {
   constructor(
     readonly type: TokenType,
     readonly lexeme: string,
@@ -83,7 +84,7 @@ export class Token {
     readonly column: number
   ) {}
 
-  getSourceLocation(filename: string): SourceLocation {
+  getLocation(filename: string): SourceLocation {
     return {
       filename,
       start: {line: this.line, column: this.column},
@@ -94,6 +95,9 @@ export class Token {
 
 class ScannerError implements LoxError {
   constructor(readonly message: string, readonly location: SourceLocation) {}
+  getLocation() {
+    return this.location;
+  }
 }
 
 export class Scanner {
