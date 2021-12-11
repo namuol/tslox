@@ -1,3 +1,4 @@
+import {HasSourceLocation} from './HasSourceLocation';
 import {Token} from './Scanner';
 import {SourceLocation} from './SourceLocation';
 
@@ -16,22 +17,17 @@ export abstract class Expression {
   abstract getLocation(filename: string): SourceLocation;
 }
 
+function getRangeLocation(
+  filename: string,
+  rangeStart: HasSourceLocation,
+  rangeEnd: HasSourceLocation
+) {
+  const {start} = rangeStart.getLocation(filename);
+  const {end} = rangeEnd.getLocation(filename);
+  return {filename, start, end};
+}
+
 export class Binary extends Expression {
-  getLocation(filename: string): SourceLocation {
-    const {start} = this.left.getLocation(filename);
-    const {end} = this.right.getLocation(filename);
-
-    return {
-      filename,
-      start,
-      end,
-    };
-  }
-
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.Binary(this);
-  }
-
   constructor(
     readonly left: Expression,
     readonly operator: Token,
@@ -39,23 +35,17 @@ export class Binary extends Expression {
   ) {
     super();
   }
+
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.left, this.right);
+  }
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Binary(this);
+  }
 }
 
 export class Grouping extends Expression {
-  getLocation(filename: string): SourceLocation {
-    const {start} = this.open.getLocation(filename);
-    const {end} = this.close.getLocation(filename);
-
-    return {
-      filename,
-      start,
-      end,
-    };
-  }
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.Grouping(this);
-  }
-
   constructor(
     readonly open: Token,
     readonly expr: Expression,
@@ -63,42 +53,38 @@ export class Grouping extends Expression {
   ) {
     super();
   }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Grouping(this);
+  }
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.open, this.close);
+  }
 }
 
 export class Literal extends Expression {
-  getLocation(filename: string): SourceLocation {
-    return this.token.getLocation(filename);
-  }
-
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.Literal(this);
-  }
-
   constructor(
     readonly token: Token,
     readonly value: number | string | boolean | null
   ) {
     super();
   }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Literal(this);
+  }
+  getLocation(filename: string): SourceLocation {
+    return this.token.getLocation(filename);
+  }
 }
 
 export class Unary extends Expression {
-  getLocation(filename: string): SourceLocation {
-    const {start} = this.operator.getLocation(filename);
-    const {end} = this.right.getLocation(filename);
-
-    return {
-      filename,
-      start,
-      end,
-    };
+  constructor(readonly operator: Token, readonly right: Expression) {
+    super();
   }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.Unary(this);
   }
-
-  constructor(readonly operator: Token, readonly right: Expression) {
-    super();
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.operator, this.right);
   }
 }
 
@@ -107,24 +93,14 @@ export class Unary extends Expression {
  * common mistakes.
  */
 export abstract class InvalidExpression extends Expression {
+  abstract readonly message: string;
+
   accept<T>(visitor: Visitor<T>): T {
     return visitor.InvalidExpression(this);
   }
-
-  abstract readonly message: string;
 }
 
 export class InvalidUnary extends InvalidExpression {
-  getLocation(filename: string): SourceLocation {
-    const {start} = this.op.getLocation(filename);
-    const {end} = this.right.getLocation(filename);
-
-    return {
-      filename,
-      start,
-      end,
-    };
-  }
   constructor(
     readonly message: string,
     readonly op: Token,
@@ -132,32 +108,31 @@ export class InvalidUnary extends InvalidExpression {
   ) {
     super();
   }
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.op, this.right);
+  }
 }
 
 export class Variable extends Expression {
-  getLocation(filename: string): SourceLocation {
-    return this.name.getLocation(filename);
+  constructor(readonly name: Token) {
+    super();
   }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.Variable(this);
   }
-
-  constructor(readonly name: Token) {
-    super();
+  getLocation(filename: string): SourceLocation {
+    return this.name.getLocation(filename);
   }
 }
 
 export class Assignment extends Expression {
+  constructor(readonly name: Token, readonly value: Expression) {
+    super();
+  }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.Assignment(this);
   }
   getLocation(filename: string): SourceLocation {
-    const {start} = this.name.getLocation(filename);
-    const {end} = this.value.getLocation(filename);
-    return {filename, start, end};
-  }
-
-  constructor(readonly name: Token, readonly value: Expression) {
-    super();
+    return getRangeLocation(filename, this.name, this.value);
   }
 }

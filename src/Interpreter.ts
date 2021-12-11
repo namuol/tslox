@@ -18,13 +18,9 @@ export class LoxRuntimeError implements LoxError {
   }
 }
 
-const makeMathDoer =
+const makeNumericInfixer =
   (verb: string, fn: (a: number, b: number) => LoxValue) =>
-  (
-    token: Token,
-    a: LoxValue,
-    b: LoxValue
-  ): Result<LoxError, LoxValue> => {
+  (token: Token, a: LoxValue, b: LoxValue): Result<LoxError, LoxValue> => {
     if (typeof a !== 'number' || typeof b !== 'number') {
       return err(
         new LoxRuntimeError(
@@ -38,13 +34,13 @@ const makeMathDoer =
     return ok(fn(a, b));
   };
 
-const subtract = makeMathDoer('subtract', (a, b) => a - b);
-const multiply = makeMathDoer('multiply', (a, b) => a * b);
-const divide = makeMathDoer('divide', (a, b) => a / b);
-const gt = makeMathDoer('compare', (a, b) => a > b);
-const geq = makeMathDoer('compare', (a, b) => a >= b);
-const lt = makeMathDoer('compare', (a, b) => a < b);
-const leq = makeMathDoer('compare', (a, b) => a <= b);
+const subtract = makeNumericInfixer('subtract', (a, b) => a - b);
+const multiply = makeNumericInfixer('multiply', (a, b) => a * b);
+const divide = makeNumericInfixer('divide', (a, b) => a / b);
+const gt = makeNumericInfixer('compare', (a, b) => a > b);
+const geq = makeNumericInfixer('compare', (a, b) => a >= b);
+const lt = makeNumericInfixer('compare', (a, b) => a < b);
+const leq = makeNumericInfixer('compare', (a, b) => a <= b);
 
 function isTruthy(right: LoxValue) {
   if (typeof right === 'boolean') return right;
@@ -56,9 +52,68 @@ export class Interpreter
     e.Visitor<Result<LoxError, LoxValue>>,
     s.Visitor<Result<LoxError, LoxValue>>
 {
-  private readonly environment: Environment = new Environment();
+  private environment: Environment = new Environment(null);
 
   constructor(private readonly filename: string) {}
+  interpret(program: s.Statement[]): Result<LoxError, void | LoxValue> {
+    let result: void | Result<LoxError, LoxValue>;
+
+    for (const stmt of program) {
+      result = this.execute(stmt);
+      if (result.err) return result;
+    }
+
+    if (result) {
+      return result;
+    }
+
+    return ok(undefined);
+  }
+
+  execute(stmt: s.Statement): Result<LoxError, LoxValue> {
+    return stmt.accept(this);
+  }
+
+  executeBlock(
+    statements: s.Statement[],
+    environment: Environment
+  ): Result<LoxError, LoxValue> {
+    const previousEnv = this.environment;
+    this.environment = environment;
+
+    let result;
+    for (const stmt of statements) {
+      result = this.execute(stmt);
+      if (result.err) break;
+    }
+
+    this.environment = previousEnv;
+    return result || ok(null);
+  }
+
+  evaluate(expr: e.Expression): Result<LoxError, LoxValue> {
+    return expr.accept(this);
+  }
+
+  If({condition, thenBranch, elseBranch}: s.If): Result<LoxError, LoxValue> {
+    const conditionResult = this.evaluate(condition);
+    if (conditionResult.err) return conditionResult;
+
+    if (isTruthy(conditionResult.val)) {
+      return this.execute(thenBranch);
+    } else if (elseBranch != null) {
+      return this.execute(elseBranch);
+    }
+    return ok(null);
+  }
+
+  Block(block: s.Block): Result<LoxError, LoxValue> {
+    return this.executeBlock(
+      block.statements,
+      new Environment(this.environment)
+    );
+  }
+
   Assignment(expr: e.Assignment): Result<LoxError, LoxValue> {
     const result = this.evaluate(expr.value);
     if (result.err) {
@@ -107,29 +162,6 @@ export class Interpreter
       console.log(valueToString(result.val));
     }
     return ok(null);
-  }
-
-  interpret(program: s.Statement[]): Result<LoxError, void | LoxValue> {
-    let result: void | Result<LoxError, LoxValue>;
-
-    for (const stmt of program) {
-      result = this.execute(stmt);
-      if (result.err) return result;
-    }
-
-    if (result) {
-      return result;
-    }
-
-    return ok(undefined);
-  }
-
-  execute(stmt: s.Statement): Result<LoxError, LoxValue> {
-    return stmt.accept(this);
-  }
-
-  evaluate(expr: e.Expression): Result<LoxError, LoxValue> {
-    return expr.accept(this);
   }
 
   Binary(expr: e.Binary): Result<LoxError, LoxValue> {

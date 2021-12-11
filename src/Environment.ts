@@ -5,9 +5,17 @@ import {err, ok, Result} from './Result';
 import {Token} from './Scanner';
 
 export class Environment {
-  private vars: Map<string, LoxValue> = new Map();
+  private readonly vars: Map<string, LoxValue> = new Map();
+  constructor(private readonly enclosing: null | Environment) {}
+
   get(name: string): LoxValue | void {
-    return this.vars.get(name);
+    const val = this.vars.get(name);
+
+    if (val === undefined && this.enclosing) {
+      return this.enclosing.get(name);
+    }
+
+    return val;
   }
 
   define(name: string, val: LoxValue): void {
@@ -16,16 +24,21 @@ export class Environment {
 
   assign(token: Token, val: LoxValue): Result<LoxError, LoxValue> {
     const name = token.lexeme;
-    if (!this.vars.has(token.lexeme)) {
-      return err(
-        new LoxRuntimeError(
-          token,
-          `No variable named '${name}' to assign a value to.`
-        )
-      );
+
+    if (this.vars.has(name)) {
+      this.vars.set(name, val);
+      return ok(val);
     }
 
-    this.vars.set(name, val);
-    return ok(val);
+    if (this.enclosing) {
+      return this.enclosing.assign(token, val);
+    }
+
+    return err(
+      new LoxRuntimeError(
+        token,
+        `No variable named '${name}' to assign a value to.`
+      )
+    );
   }
 }

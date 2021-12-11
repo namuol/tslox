@@ -49,43 +49,6 @@ export class Parser {
     return ok(statements);
   }
 
-  declaration(): s.Statement {
-    if (this.match(TokenType.VAR)) return this.varDeclaration();
-    return this.statement();
-  }
-
-  varDeclaration(): s.Statement {
-    const identifier = this.consume(
-      TokenType.IDENTIFIER,
-      'Expected variable name'
-    );
-
-    let initializer = null;
-    if (this.match(TokenType.EQUAL)) {
-      initializer = this.expression();
-    }
-
-    this.consume(TokenType.SEMICOLON, "Expected ';' after expression");
-    return new s.Var(identifier, initializer);
-  }
-
-  statement(): s.Statement {
-    if (this.match(TokenType.PRINT)) return this.printStatement();
-    return this.expressionStatement();
-  }
-
-  printStatement(): s.Print {
-    const expr = this.expression();
-    this.consume(TokenType.SEMICOLON, "Expect ';' after value");
-    return new s.Print(expr);
-  }
-
-  expressionStatement(): s.Expr {
-    const expr = this.expression();
-    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
-    return new s.Expr(expr);
-  }
-
   private match(...tokenTypes: TokenType[]): boolean {
     if (this.isAtEnd()) return false;
 
@@ -149,6 +112,77 @@ export class Parser {
     }
   }
 
+  // declaration     → varDecl
+  //                 | statement ;
+  declaration(): s.Statement {
+    if (this.match(TokenType.VAR)) return this.varDeclaration();
+    return this.statement();
+  }
+
+  // varDecl         → "var" IDENTIFIER ( "=" expression )? ";" ;
+  varDeclaration(): s.Statement {
+    const identifier = this.consume(
+      TokenType.IDENTIFIER,
+      'Expected variable name'
+    );
+
+    let initializer = null;
+    if (this.match(TokenType.EQUAL)) {
+      initializer = this.expression();
+    }
+
+    this.consume(TokenType.SEMICOLON, "Expected ';' after expression");
+    return new s.Var(identifier, initializer);
+  }
+
+  // statement       → exprStmt
+  //                 | ifStmt
+  //                 | printStmt
+  //                 | block;
+  statement(): s.Statement {
+    if (this.match(TokenType.IF)) return this.ifStatement();
+    if (this.match(TokenType.PRINT)) return this.printStatement();
+    if (this.match(TokenType.LEFT_BRACE)) return new s.Block(this.block());
+    return this.expressionStatement();
+  }
+
+  // ifStmt          → "if" "(" expression ")" statement ( "else" statement )? ;
+  ifStatement(): s.Statement {
+    this.consume(TokenType.LEFT_PAREN, `Expected '(' after 'if'.`);
+    const condition = this.expression();
+    this.consume(TokenType.RIGHT_PAREN, `Expected ')' after if condition.`);
+    const thenBranch = this.statement();
+    let elseBranch;
+    if (this.match(TokenType.ELSE)) {
+      elseBranch = this.statement();
+    }
+    return new s.If(condition, thenBranch, elseBranch);
+  }
+
+  // block           → "{" declaration* "}" ;
+  block(): s.Statement[] {
+    const statements: s.Statement[] = [];
+    while (this.peek().type !== TokenType.RIGHT_BRACE && !this.isAtEnd()) {
+      statements.push(this.declaration());
+    }
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+    return statements;
+  }
+
+  // exprStmt        → expression ";" ;
+  expressionStatement(): s.Expr {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
+    return new s.Expr(expr);
+  }
+
+  // printStmt       → "print" expression ";" ;
+  printStatement(): s.Print {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value");
+    return new s.Print(expr);
+  }
+
   // expression      → assignment ;
   expression(): e.Expression {
     return this.assignment();
@@ -162,7 +196,7 @@ export class Parser {
     if (this.match(TokenType.EQUAL)) {
       const equals = this.previous();
       const value = this.assignment();
-      
+
       if (expr instanceof e.Variable) {
         return new e.Assignment(expr.name, value);
       }
