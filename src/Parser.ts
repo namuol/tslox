@@ -138,11 +138,13 @@ export class Parser {
   // statement       → exprStmt
   //                 | ifStmt
   //                 | whileStmt
+  //                 | forStmt
   //                 | printStmt
   //                 | block ;
   statement(): s.Statement {
     if (this.match(TokenType.IF)) return this.ifStatement();
     if (this.match(TokenType.WHILE)) return this.whileStatement();
+    if (this.match(TokenType.FOR)) return this.forStatement();
     if (this.match(TokenType.PRINT)) return this.printStatement();
     if (this.match(TokenType.LEFT_BRACE)) return new s.Block(this.block());
     return this.expressionStatement();
@@ -168,6 +170,77 @@ export class Parser {
     this.consume(TokenType.RIGHT_PAREN, `Expected ')' after condition.`);
     const statement = this.statement();
     return new s.While(condition, statement);
+  }
+
+  // forStmt         → "for" "(" ( varDecl | exprStmt | ";" )
+  //                   expression? ";"
+  //                   expression? ")" statement ;
+  forStatement(): s.Statement {
+    // NOTE: We rewrite our for loops as while loops directly inside the parser.
+    //
+    // I'm following the book's lead here and using this desugaring approach at
+    // the AST layer, but I think I would rather keep the semantics and desugar
+    // _at the interpreter layer_, instead (if at all), in order to avoid losing
+    // any of the authors original semantics so you can do more useful &
+    // interesting things through the AST.
+
+    this.consume(TokenType.LEFT_PAREN, `Expected '(' after 'for'.`);
+
+    // First we collect the optional initializer:
+    let initializer;
+    if (this.match(TokenType.VAR)) {
+      initializer = this.varDeclaration();
+    } else if (!this.match(TokenType.SEMICOLON)) {
+      initializer = this.expressionStatement();
+    }
+
+    // ...then the optional condition expression:
+    let condition;
+    if (this.peek().type !== TokenType.SEMICOLON) {
+      condition = this.expression();
+    }
+    this.consume(TokenType.SEMICOLON, `Expected ';' after loop condition.`);
+
+    // ...and finally the optional incrementor:
+    let incrementor;
+    if (this.peek().type !== TokenType.RIGHT_PAREN) {
+      incrementor = this.expression();
+    }
+
+    this.consume(TokenType.RIGHT_PAREN, `Expected ')' after condition.`);
+
+    // Now we construct an equivalent set of statements using `while` in place
+    // of `for`.
+
+    // Start with our body just being the statement inside our for loop...
+    let body = this.statement();
+
+    // If we have an incrementor, we want to append that to the end of our
+    // statement so it executes after our for-loop body:
+    if (incrementor) {
+      // Add our incrementor to the end of our body
+      body = new s.Block([body, new s.Expr(incrementor)]);
+    }
+
+    // If no condition was provided, we treat it like `while(true)`:
+    if (!condition) {
+      // NOTE: This requires us to insert a `true` literal, but we don't have
+      // any source code to reference, so this puts us in an awkward position at
+      // the AST level. We now have "desugared" (aka "generated") statements and
+      // expressions alongside the original semantic source code.
+      condition = new e.Literal(
+        new Token(TokenType.TRUE, 'true', -1, -1),
+        true
+      );
+    }
+
+    body = new s.While(condition, body);
+
+    if (initializer) {
+      body = new s.Block([initializer, body]);
+    }
+
+    return body;
   }
 
   // block           → "{" declaration* "}" ;

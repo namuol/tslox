@@ -63,16 +63,11 @@ export class If extends Statement {
   }
 }
 
-
 export class While extends Statement {
-  constructor(
-    readonly condition: Expression,
-    readonly statement: Statement,
-  ) {
+  constructor(readonly condition: Expression, readonly statement: Statement) {
     super();
   }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.While(this);
   }
 }
-
