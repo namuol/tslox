@@ -264,7 +264,8 @@ export class Scanner {
     // "/"
     this.advance();
 
-    this.addToken(TokenType.COMMENT_BLOCK);
+    // TODO: Keep comments inside our parser (how?)
+    // this.addToken(TokenType.COMMENT_BLOCK);
   }
 
   private scanToken(): void {
@@ -345,7 +346,8 @@ export class Scanner {
           while (this.peek() !== '\n' && !this.isAtEnd()) {
             this.advance();
           }
-          this.addToken(TokenType.COMMENT);
+          // TODO: Keep comments inside our parser (how?)
+          // this.addToken(TokenType.COMMENT);
         } else if (this.match('*')) {
           this.commentBlock();
         } else {

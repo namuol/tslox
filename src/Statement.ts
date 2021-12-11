@@ -7,6 +7,7 @@ export interface Visitor<T> {
   Var(stmt: Var): T;
   Block(stmt: Block): T;
   If(stmt: If): T;
+  Comment(stmt: Comment): T;
 }
 
 export abstract class Statement {
@@ -59,5 +60,14 @@ export class If extends Statement {
   }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.If(this);
+  }
+}
+
+export class Comment extends Statement {
+  constructor(readonly comment: Token) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Comment(this);
   }
 }

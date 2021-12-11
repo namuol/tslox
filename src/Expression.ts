@@ -10,6 +10,7 @@ export interface Visitor<T> {
   InvalidExpression(expr: InvalidExpression): T;
   Variable(expr: Variable): T;
   Assignment(expr: Assignment): T;
+  Logical(expr: Logical): T;
 }
 
 export abstract class Expression {
@@ -134,5 +135,21 @@ export class Assignment extends Expression {
   }
   getLocation(filename: string): SourceLocation {
     return getRangeLocation(filename, this.name, this.value);
+  }
+}
+
+export class Logical extends Expression {
+  constructor(
+    readonly left: Expression,
+    readonly operator: Token,
+    readonly right: Expression
+  ) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Logical(this);
+  }
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.left, this.right);
   }
 }

@@ -8,6 +8,7 @@ import {
   InvalidExpression,
   Variable,
   Assignment,
+  Logical,
 } from './Expression';
 
 /**
@@ -26,6 +27,14 @@ export class RpnPrinter implements Visitor<string> {
   }
 
   Binary(expr: Binary): string {
+    return [
+      this.print(expr.left),
+      this.print(expr.right),
+      expr.operator.lexeme,
+    ].join(' ');
+  }
+
+  Logical(expr: Logical): string {
     return [
       this.print(expr.left),
       this.print(expr.right),

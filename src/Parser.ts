@@ -138,7 +138,7 @@ export class Parser {
   // statement       → exprStmt
   //                 | ifStmt
   //                 | printStmt
-  //                 | block;
+  //                 | block ;
   statement(): s.Statement {
     if (this.match(TokenType.IF)) return this.ifStatement();
     if (this.match(TokenType.PRINT)) return this.printStatement();
@@ -189,9 +189,9 @@ export class Parser {
   }
 
   // assignment      → IDENTIFIER "=" assignment
-  //                 | equality ;
+  //                 | logic_or ;
   assignment(): e.Expression {
-    const expr = this.equality();
+    const expr = this.or();
 
     if (this.match(TokenType.EQUAL)) {
       const equals = this.previous();
@@ -204,6 +204,30 @@ export class Parser {
       throw this.error(equals, 'Invalid assignment target');
     }
 
+    return expr;
+  }
+
+  // logic_or        → logic_and ( "or" logic_and )* ;
+  or(): e.Expression {
+    let expr = this.and();
+
+    while (this.match(TokenType.OR)) {
+      const operator = this.previous();
+      const right = this.and();
+      expr = new e.Logical(expr, operator, right);
+    }
+    return expr;
+  }
+
+  // logic_and       → equality ( "and" equality )* ;
+  and(): e.Expression {
+    let expr = this.equality();
+
+    while (this.match(TokenType.AND)) {
+      const operator = this.previous();
+      const right = this.equality();
+      expr = new e.Logical(expr, operator, right);
+    }
     return expr;
   }
 
@@ -302,7 +326,7 @@ export class Parser {
   // primary         → "true" | "false" | "nil"
   //                 | NUMBER | STRING
   //                 | "(" expression ")"
-  //                 | IDENTIFIER
+  //                 | IDENTIFIER ;
   private primary(): e.Expression {
     const token = this.advance();
     switch (token.type) {

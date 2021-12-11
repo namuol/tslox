@@ -4,6 +4,7 @@ import {promises as fs} from 'fs';
 import * as readline from 'readline';
 import {Interpreter} from './Interpreter';
 import {Lox} from './Lox';
+import {LoxError} from './LoxError';
 import {print} from './LoxValue';
 
 const usage = `
@@ -12,9 +13,25 @@ Usage: tslox [<script>]
 
 const {'<script>': script} = docopt(usage);
 
-async function runFile(filename: string): Promise<void> {
+function printErrors(filename: string, errs: LoxError[]) {
+  for (const err of errs) {
+    const location = err.getLocation ? err.getLocation(filename) : null;
+    const prefix = location
+      ? `[${location.start.line}:${location.start.column}${
+          location.end ? `-${location.end.line}:${location.end.column}` : ''
+        }]: `
+      : '';
+    console.error(`${prefix}${err.message}`);
+  }
+}
+
+async function runFile(filename: string) {
   const source = await fs.readFile(filename, 'utf-8');
-  await Lox.run(source, filename);
+  const result = await Lox.run(source, filename);
+
+  if (result.err) {
+    printErrors(filename, result.err);
+  }
 }
 
 async function runPrompt() {
@@ -39,15 +56,7 @@ async function runPrompt() {
 
     const result = await lox.eval(line);
     if (result.err) {
-      for (const err of result.err) {
-        const location = err.getLocation ? err.getLocation(filename) : null;
-        const prefix = location
-          ? `[${location.start.line}:${location.start.column}${
-              location.end ? `-${location.end.line}:${location.end.column}` : ''
-            }]: `
-          : '';
-        console.error(`${prefix}${err.message}`);
-      }
+      printErrors(filename, result.err);
     } else {
       if (result.val !== undefined) {
         console.log(`(${print(result.val)})`);

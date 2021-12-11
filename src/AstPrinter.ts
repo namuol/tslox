@@ -8,9 +8,11 @@ import {
   InvalidExpression,
   Variable,
   Assignment,
+  Logical,
 } from './Expression';
 
 export class AstPrinter implements Visitor<string> {
+
   private parenthesize(name: string, ...exprs: Expression[]): string {
     return `(${name} ${exprs.map(this.print.bind(this)).join(' ')})`;
   }
@@ -28,6 +30,10 @@ export class AstPrinter implements Visitor<string> {
   }
 
   Binary(expr: Binary): string {
+    return this.parenthesize(expr.operator.lexeme, expr.left, expr.right);
+  }
+
+  Logical(expr: Logical): string {
     return this.parenthesize(expr.operator.lexeme, expr.left, expr.right);
   }
 
