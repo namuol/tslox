@@ -55,10 +55,6 @@ export class Interpreter
   private environment: Environment = new Environment(null);
 
   constructor(private readonly filename: string) {}
-  Comment(): Result<LoxError, LoxValue> {
-    // Discard comments:
-    return ok(null);
-  }
 
   Logical({left, operator, right}: e.Logical): Result<LoxError, LoxValue> {
     const leftResult = this.evaluate(left);
@@ -135,6 +131,19 @@ export class Interpreter
     } else if (elseBranch != null) {
       return this.execute(elseBranch);
     }
+    return ok(null);
+  }
+
+  While({condition, statement}: s.While): Result<LoxError, LoxValue> {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const conditionResult = this.evaluate(condition);
+      if (conditionResult.err) return conditionResult;
+      if (!isTruthy(conditionResult.val)) break;
+      const result = this.execute(statement);
+      if (result.err) return result;
+    }
+
     return ok(null);
   }
 
