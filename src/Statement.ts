@@ -8,7 +8,8 @@ export interface Visitor<T> {
   Block(stmt: Block): T;
   If(stmt: If): T;
   While(stmt: While): T;
-  Func(stmt: FunDecl): T;
+  FunDecl(stmt: FunDecl): T;
+  Return(stmt: Return): T;
 }
 
 export abstract class Statement {
@@ -73,16 +74,24 @@ export class While extends Statement {
   }
 }
 
-
 export class FunDecl extends Statement {
   constructor(
     readonly name: Token,
     readonly parameters: Token[],
-    readonly body: Statement[],
+    readonly body: Statement[]
   ) {
     super();
   }
   accept<T>(visitor: Visitor<T>): T {
-    return visitor.Func(this);
+    return visitor.FunDecl(this);
+  }
+}
+
+export class Return extends Statement {
+  constructor(readonly keyword: Token, readonly expr: null | Expression) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Return(this);
   }
 }

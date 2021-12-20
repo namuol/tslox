@@ -1,8 +1,9 @@
-import {Interpreter} from './Interpreter';
-import {Result, ok} from './Result';
+import {Interpreter, LoxRuntimeError} from './Interpreter';
+import {Result, ok, err} from './Result';
 import {LoxError} from './LoxError';
 import {FunDecl} from './Statement';
 import {Environment} from './Environment';
+import { ReturnedValue } from './ReturnedValue';
 
 export abstract class LoxCallable {
   abstract call(
@@ -28,7 +29,18 @@ export class LoxFunction extends LoxCallable {
       env.define(params[i].lexeme, args[i]);
     }
 
-    interpreter.executeBlock(this.funDecl.body, env);
+    try {
+      interpreter.executeBlock(this.funDecl.body, env);
+    } catch (e) {
+      if (e instanceof ReturnedValue) {
+        return ok(e.value);
+      } else if (e instanceof LoxError) {
+        return err(e);
+      } else {
+        // Unexpected error:
+        throw e;
+      }
+    }
 
     // Guess we don't have return statements yet!
     return ok(null);

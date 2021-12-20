@@ -13,6 +13,7 @@ import {Result, ok, err} from './Result';
 import {Token, TokenType} from './Scanner';
 import {HasSourceLocation} from './HasSourceLocation';
 import {Environment} from './Environment';
+import {ReturnedValue} from './ReturnedValue';
 
 export class LoxRuntimeError implements LoxError {
   constructor(
@@ -368,9 +369,18 @@ export class Interpreter
     );
   }
 
-  Func(fun: s.FunDecl): Result<LoxError, LoxValue> {
+  FunDecl(fun: s.FunDecl): Result<LoxError, LoxValue> {
     const val = new LoxFunction(fun);
     this.environment.define(fun.name.lexeme, val);
     return ok(val);
+  }
+
+  Return(stmt: s.Return): Result<LoxError, LoxValue> {
+    let res: void | Result<LoxError, LoxValue>;
+    if (stmt.expr !== null) res = this.evaluate(stmt.expr);
+    if (res?.err) return res;
+
+    // We use `throw` to break out of a callstack:
+    throw new ReturnedValue(res ? res.val : null);
   }
 }

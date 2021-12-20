@@ -15,6 +15,7 @@ statement       → exprStmt
                 | whileStmt
                 | forStmt
                 | printStmt
+                | returnStmt
                 | block ;
 
 ifStmt          → "if" "(" expression ")" statement ( "else" statement )? ;
@@ -27,6 +28,7 @@ block           → "{" declaration* "}" ;
 
 exprStmt        → expression ";" ;
 printStmt       → "print" expression ";" ;
+returnStmt      → "return" expression? ";" ;
 
 expression      → assignment ;
 
