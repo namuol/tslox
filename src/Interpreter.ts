@@ -47,14 +47,29 @@ function isTruthy(right: LoxValue) {
   return right !== null;
 }
 
+// FFI-like example:
+class ClockFunction extends LoxCallable {
+  call(): Result<LoxError, LoxValue> {
+    return ok(Date.now());
+  }
+  arity(): number {
+    return 0;
+  }
+}
+
 export class Interpreter
   implements
     e.Visitor<Result<LoxError, LoxValue>>,
     s.Visitor<Result<LoxError, LoxValue>>
 {
-  private environment: Environment = new Environment(null);
+  private globals: Environment = new Environment(null);
+  private environment: Environment = this.globals;
 
-  constructor(private readonly filename: string) {}
+  constructor(private readonly filename: string) {
+    // FFI-like example:
+    this.globals.define('clock', new ClockFunction());
+  }
+
   Logical({left, operator, right}: e.Logical): Result<LoxError, LoxValue> {
     const leftResult = this.evaluate(left);
     if (leftResult.err != null) return leftResult;

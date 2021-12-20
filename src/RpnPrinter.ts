@@ -9,17 +9,19 @@ import {
   Variable,
   Assignment,
   Logical,
+  Call,
 } from './Expression';
 
 /**
  * Implements Reverse Polish Notation (RPN) printing of expressions.
  */
 export class RpnPrinter implements Visitor<string> {
+  print = (expr: Expression): string => {
+    return expr.accept(this);
+  };
+
   Assignment(expr: Assignment): string {
     return [expr.name.lexeme, this.print(expr.value), '='].join(' ');
-  }
-  print(expr: Expression): string {
-    return expr.accept(this);
   }
 
   Variable(expr: Variable): string {
@@ -56,5 +58,11 @@ export class RpnPrinter implements Visitor<string> {
 
   InvalidExpression(expr: InvalidExpression): string {
     return `<<Error: ${expr.message}>>`;
+  }
+
+  Call(expr: Call): string {
+    return [expr.args.map(this.print), `call::${this.print(expr.callee)}`].join(
+      ' '
+    );
   }
 }
