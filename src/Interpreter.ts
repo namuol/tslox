@@ -1,7 +1,7 @@
 import * as e from './Expression';
 import * as s from './Statement';
 import {LoxError} from './LoxError';
-import {LoxValue, valueToString, print} from './LoxValue';
+import {LoxValue, LoxCallable, valueToString, print} from './LoxValue';
 import {LoxParseError} from './Parser';
 import {Result, ok, err} from './Result';
 import {Token, TokenType} from './Scanner';
@@ -55,7 +55,6 @@ export class Interpreter
   private environment: Environment = new Environment(null);
 
   constructor(private readonly filename: string) {}
-
   Logical({left, operator, right}: e.Logical): Result<LoxError, LoxValue> {
     const leftResult = this.evaluate(left);
     if (leftResult.err != null) return leftResult;
@@ -118,9 +117,9 @@ export class Interpreter
     return result || ok(null);
   }
 
-  evaluate(expr: e.Expression): Result<LoxError, LoxValue> {
+  evaluate = (expr: e.Expression): Result<LoxError, LoxValue> => {
     return expr.accept(this);
-  }
+  };
 
   If({condition, thenBranch, elseBranch}: s.If): Result<LoxError, LoxValue> {
     const conditionResult = this.evaluate(condition);
@@ -311,5 +310,37 @@ export class Interpreter
 
   InvalidExpression(expr: e.InvalidExpression): Result<LoxError, LoxValue> {
     return err(new LoxParseError(expr.message, expr));
+  }
+
+  Call(expr: e.Call): Result<LoxError, LoxValue> {
+    const callee = this.evaluate(expr.callee);
+    if (callee.err) return callee;
+
+    const args = [];
+    for (const arg of expr.args) {
+      const argResult = this.evaluate(arg);
+      if (argResult.err) return argResult;
+      args.push(argResult.val);
+    }
+
+    if (callee.val instanceof LoxCallable) {
+      if (args.length !== callee.val.arity()) {
+        return err(
+          new LoxRuntimeError(
+            expr.closingParen,
+            `Expected ${callee.val.arity()} arguments, but got ${args.length}.`
+          )
+        );
+      }
+
+      return callee.val.call(this, args);
+    }
+
+    return err(
+      new LoxRuntimeError(
+        expr.closingParen,
+        'Can only call functions and classes.'
+      )
+    );
   }
 }

@@ -11,6 +11,7 @@ export interface Visitor<T> {
   Variable(expr: Variable): T;
   Assignment(expr: Assignment): T;
   Logical(expr: Logical): T;
+  Call(expr: Call): T;
 }
 
 export abstract class Expression {
@@ -151,5 +152,21 @@ export class Logical extends Expression {
   }
   getLocation(filename: string): SourceLocation {
     return getRangeLocation(filename, this.left, this.right);
+  }
+}
+
+export class Call extends Expression {
+  constructor(
+    readonly callee: Expression,
+    readonly args: Expression[],
+    readonly closingParen: Token,
+  ) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Call(this);
+  }
+  getLocation(filename: string): SourceLocation {
+    return getRangeLocation(filename, this.callee, this.closingParen);
   }
 }

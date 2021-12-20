@@ -4,6 +4,7 @@ import {AstPrinter} from './AstPrinter';
 
 const num = n => new Token(TokenType.NUMBER, n.toString(10), 0, 0);
 const str = s => new Token(TokenType.STRING, JSON.stringify(s), 0, 0);
+const id = s => new Token(TokenType.IDENTIFIER, s, 0, 0);
 
 const TOKENS = {
   '(': new Token(TokenType.LEFT_PAREN, '(', 0, 0),
@@ -20,6 +21,7 @@ const TOKENS = {
   '*': new Token(TokenType.STAR, '*', 0, 0),
   '/': new Token(TokenType.SLASH, '/', 0, 0),
   '!': new Token(TokenType.BANG, '!', 0, 0),
+  ',': new Token(TokenType.COMMA, ',', 0, 0),
   true: new Token(TokenType.TRUE, 'true', 0, 0),
   false: new Token(TokenType.FALSE, 'false', 0, 0),
   nil: new Token(TokenType.NIL, 'nil', 0, 0),
@@ -42,19 +44,19 @@ const invalidUnaryOps: ShorthandToken[] = [
 // prettier-ignore
 const cases: Case[] = [
   ['addition', [1, '+', 2], '(+ 1 2)'],
-  ['subtraction', [num(1), '-', num(2)], '(- 1 2)'],
-  ['multiplication', [num(1), '*', num(2)], '(* 1 2)'],
-  ['division', [num(1), '/', num(2)], '(/ 1 2)'],
+  ['subtraction', [1, '-', 2], '(- 1 2)'],
+  ['multiplication', [1, '*', 2], '(* 1 2)'],
+  ['division', [1, '/', 2], '(/ 1 2)'],
   ['addition then multiplication',
-    [num(1), '+', num(2), '*', num(3)],
+    [1, '+', 2, '*', 3],
     '(+ 1 (* 2 3))',
   ],
   ['multiplication then addition',
-    [num(1), '*', num(2), '+', num(3)],
+    [1, '*', 2, '+', 3],
     '(+ (* 1 2) 3)',
   ],
   ['parenthesis get precedence',
-    ['(', num(1), '+', num(2), ')', '*', num(3)],
+    ['(', 1, '+', 2, ')', '*', 3],
     '(* (group (+ 1 2)) 3)',
   ],
   ['string',
@@ -62,15 +64,15 @@ const cases: Case[] = [
     '"Hello, world!"'
   ],
   ['floating-point number',
-    [num(1.23456789)],
+    [1.23456789],
     '1.23456789'
   ],
   ['negative number',
-    ['-', num(42)],
+    ['-', 42],
     '(- 42)'
   ],
   ['double-negative number',
-    ['-', '-', num(42)],
+    ['-', '-', 42],
     '(- (- 42))'
   ],
   ['true', ['true'], 'true'],
@@ -89,6 +91,15 @@ const cases: Case[] = [
     [op, 42],
     `<<Error: Missing left-hand operand for '${op}' operator>>`
   ])),
+  ['call', [id('hello'), '(', 42, ')'], '(call hello 42)'],
+  ['nested call', [
+    id('hello'), '(',
+      42, ',', id('foo'), '(',
+        43,
+      ')',
+    ')'], '(call hello 42 (call foo 43))'],
+  ['call of call', [
+    id('hello'), '(', 42, ')', '(', ')'], '(call (call hello 42))']
 ];
 
 const printer = new AstPrinter();

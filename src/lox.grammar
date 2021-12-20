@@ -38,7 +38,10 @@ factor          → unary ( ( "/" | "*" ) unary )* ;
 unary           → ( "!" | "-" ) unary
                 | invalidUnary ;
 invalidUnary    → ( "==" | "!=" | ">" | ">=" | "<" | "<=" | "+" | "/" | "*" ) invalidUnary
-                | primary ;
+                | call ;
+
+call            → primary ( "(" arguments? ")" )* ;
+arguments       → expression ( "," expression )* ;
 
 primary         → "true" | "false" | "nil"
                 | NUMBER | STRING

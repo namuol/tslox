@@ -9,10 +9,10 @@ import {
   Variable,
   Assignment,
   Logical,
+  Call,
 } from './Expression';
 
 export class AstPrinter implements Visitor<string> {
-
   private parenthesize(name: string, ...exprs: Expression[]): string {
     return `(${name} ${exprs.map(this.print.bind(this)).join(' ')})`;
   }
@@ -24,7 +24,7 @@ export class AstPrinter implements Visitor<string> {
   Assignment(expr: Assignment): string {
     return `(= ${expr.name.lexeme} ${this.print(expr.value)})`;
   }
-  
+
   Variable(expr: Variable): string {
     return expr.name.lexeme;
   }
@@ -51,5 +51,9 @@ export class AstPrinter implements Visitor<string> {
 
   InvalidExpression(expr: InvalidExpression): string {
     return `<<Error: ${expr.message}>>`;
+  }
+
+  Call(expr: Call): string {
+    return this.parenthesize('call', expr.callee, ...expr.args);
   }
 }

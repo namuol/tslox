@@ -78,9 +78,10 @@ export class Parser {
   }
 
   private consume(type: TokenType, message: string) {
-    if (this.peek().type === type) return this.advance();
+    const tok = this.peek();
+    if (tok.type === type) return this.advance();
 
-    throw this.error(this.peek(), message + '; got ' + this.peek().type);
+    throw this.error(tok, `${message}; got ${tok.type}: "${tok.lexeme}"`);
   }
 
   private error(token: Token, message: string) {
@@ -381,7 +382,7 @@ export class Parser {
   }
 
   // invalidUnary    → ( "==" | "!=" | ">" | ">=" | "<" | "<=" | "+" | "/" | "*" ) invalidUnary
-  //                 | primary ;
+  //                 | call ;
   private invalidUnary(): e.Expression {
     if (
       this.match(
@@ -404,7 +405,43 @@ export class Parser {
       );
     }
 
-    return this.primary();
+    return this.call();
+  }
+
+  // call            → primary ( "(" arguments? ")" )* ;
+  private call(): e.Expression {
+    let expr = this.primary();
+
+    while (this.match(TokenType.LEFT_PAREN)) {
+      let args: e.Expression[];
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        args = [];
+      } else {
+        args = this.arguments();
+        this.consume(
+          TokenType.RIGHT_PAREN,
+          "Expect ',' separating or ')' after arguments"
+        );
+      }
+
+      expr = new e.Call(expr, args, this.previous());
+    }
+
+    return expr;
+  }
+
+  // arguments       → expression ( "," expression )* ;
+  private arguments(): e.Expression[] {
+    const args = [];
+
+    do {
+      if (arguments.length >= 255) {
+        this.error(this.peek(), "Can't have more than 255 arguments.");
+      }
+      args.push(this.expression());
+    } while (this.match(TokenType.COMMA));
+
+    return args;
   }
 
   // primary         → "true" | "false" | "nil"
