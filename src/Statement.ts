@@ -8,6 +8,7 @@ export interface Visitor<T> {
   Block(stmt: Block): T;
   If(stmt: If): T;
   While(stmt: While): T;
+  Func(stmt: FunDecl): T;
 }
 
 export abstract class Statement {
@@ -69,5 +70,19 @@ export class While extends Statement {
   }
   accept<T>(visitor: Visitor<T>): T {
     return visitor.While(this);
+  }
+}
+
+
+export class FunDecl extends Statement {
+  constructor(
+    readonly name: Token,
+    readonly parameters: Token[],
+    readonly body: Statement[],
+  ) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Func(this);
   }
 }

@@ -1,7 +1,13 @@
 import * as e from './Expression';
 import * as s from './Statement';
 import {LoxError} from './LoxError';
-import {LoxValue, LoxCallable, valueToString, print} from './LoxValue';
+import {
+  LoxValue,
+  LoxCallable,
+  LoxFunction,
+  valueToString,
+  print,
+} from './LoxValue';
 import {LoxParseError} from './Parser';
 import {Result, ok, err} from './Result';
 import {Token, TokenType} from './Scanner';
@@ -55,6 +61,9 @@ class ClockFunction extends LoxCallable {
   arity(): number {
     return 0;
   }
+  toString(): string {
+    return '<native fn>';
+  }
 }
 
 export class Interpreter
@@ -62,7 +71,7 @@ export class Interpreter
     e.Visitor<Result<LoxError, LoxValue>>,
     s.Visitor<Result<LoxError, LoxValue>>
 {
-  private globals: Environment = new Environment(null);
+  globals: Environment = new Environment(null);
   private environment: Environment = this.globals;
 
   constructor(private readonly filename: string) {
@@ -357,5 +366,11 @@ export class Interpreter
         'Can only call functions and classes.'
       )
     );
+  }
+
+  Func(fun: s.FunDecl): Result<LoxError, LoxValue> {
+    const val = new LoxFunction(fun);
+    this.environment.define(fun.name.lexeme, val);
+    return ok(val);
   }
 }

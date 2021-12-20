@@ -81,7 +81,10 @@ export class Parser {
     const tok = this.peek();
     if (tok.type === type) return this.advance();
 
-    throw this.error(tok, `${message}; got ${tok.type}: "${tok.lexeme}"`);
+    throw this.error(
+      tok,
+      `${message}; got ${tok.type} ${tok.lexeme ? `(${tok.lexeme})` : ''}`
+    );
   }
 
   private error(token: Token, message: string) {
@@ -113,18 +116,50 @@ export class Parser {
     }
   }
 
-  // declaration     → varDecl
+  // declaration     → funDecl
+  //                 | varDecl
   //                 | statement ;
   declaration(): s.Statement {
-    if (this.match(TokenType.VAR)) return this.varDeclaration();
+    if (this.match(TokenType.FUN)) return this.funDecl();
+    if (this.match(TokenType.VAR)) return this.varDecl();
     return this.statement();
   }
 
+  // funDecl         → "fun" function ;
+  funDecl(): s.Statement {
+    return this.function('function');
+  }
+  // function        → IDENTIFIER "(" parameters? ")" block ;
+  function(kind: 'function' | 'method'): s.Statement {
+    const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name`);
+
+    this.consume(TokenType.LEFT_PAREN, "Expect '(' at start of parameter list");
+    const parameters = this.parameters();
+    this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter");
+    this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
+    return new s.FunDecl(name, parameters, this.block());
+  }
+
+  // parameters      → IDENTIFIER ( "," IDENTIFIER )* ;
+  parameters(): Token[] {
+    const parameters = [];
+
+    do {
+      if (parameters.length >= 255) {
+        this.error(this.peek(), "Can't have more than 255 parameters.");
+      }
+      this.consume(TokenType.IDENTIFIER, 'Expect identifer in parameter list');
+      parameters.push(this.previous());
+    } while (this.match(TokenType.COMMA));
+
+    return parameters;
+  }
+
   // varDecl         → "var" IDENTIFIER ( "=" expression )? ";" ;
-  varDeclaration(): s.Statement {
+  varDecl(): s.Statement {
     const identifier = this.consume(
       TokenType.IDENTIFIER,
-      'Expected variable name'
+      'Expect variable name'
     );
 
     let initializer = null;
@@ -132,7 +167,7 @@ export class Parser {
       initializer = this.expression();
     }
 
-    this.consume(TokenType.SEMICOLON, "Expected ';' after expression");
+    this.consume(TokenType.SEMICOLON, "Expect ';' after expression");
     return new s.Var(identifier, initializer);
   }
 
@@ -153,9 +188,9 @@ export class Parser {
 
   // ifStmt          → "if" "(" expression ")" statement ( "else" statement )? ;
   ifStatement(): s.Statement {
-    this.consume(TokenType.LEFT_PAREN, `Expected '(' after 'if'.`);
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after 'if'`);
     const condition = this.expression();
-    this.consume(TokenType.RIGHT_PAREN, `Expected ')' after condition.`);
+    this.consume(TokenType.RIGHT_PAREN, `Expect ')' after condition`);
     const thenBranch = this.statement();
     let elseBranch;
     if (this.match(TokenType.ELSE)) {
@@ -166,9 +201,9 @@ export class Parser {
 
   // whileStmt       → "while" "(" expression ")" statement ;
   whileStatement(): s.Statement {
-    this.consume(TokenType.LEFT_PAREN, `Expected '(' after 'while'.`);
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after 'while'`);
     const condition = this.expression();
-    this.consume(TokenType.RIGHT_PAREN, `Expected ')' after condition.`);
+    this.consume(TokenType.RIGHT_PAREN, `Expect ')' after condition`);
     const statement = this.statement();
     return new s.While(condition, statement);
   }
@@ -185,12 +220,12 @@ export class Parser {
     // any of the authors original semantics so you can do more useful &
     // interesting things through the AST.
 
-    this.consume(TokenType.LEFT_PAREN, `Expected '(' after 'for'.`);
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after 'for'`);
 
     // First we collect the optional initializer:
     let initializer;
     if (this.match(TokenType.VAR)) {
-      initializer = this.varDeclaration();
+      initializer = this.varDecl();
     } else if (!this.match(TokenType.SEMICOLON)) {
       initializer = this.expressionStatement();
     }
@@ -200,7 +235,7 @@ export class Parser {
     if (this.peek().type !== TokenType.SEMICOLON) {
       condition = this.expression();
     }
-    this.consume(TokenType.SEMICOLON, `Expected ';' after loop condition.`);
+    this.consume(TokenType.SEMICOLON, `Expect ';' after loop condition`);
 
     // ...and finally the optional incrementor:
     let incrementor;
@@ -208,7 +243,7 @@ export class Parser {
       incrementor = this.expression();
     }
 
-    this.consume(TokenType.RIGHT_PAREN, `Expected ')' after condition.`);
+    this.consume(TokenType.RIGHT_PAREN, `Expect ')' after condition`);
 
     // Now we construct an equivalent set of statements using `while` in place
     // of `for`.
@@ -250,7 +285,7 @@ export class Parser {
     while (this.peek().type !== TokenType.RIGHT_BRACE && !this.isAtEnd()) {
       statements.push(this.declaration());
     }
-    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after block");
     return statements;
   }
 
@@ -435,7 +470,7 @@ export class Parser {
     const args = [];
 
     do {
-      if (arguments.length >= 255) {
+      if (args.length >= 255) {
         this.error(this.peek(), "Can't have more than 255 arguments.");
       }
       args.push(this.expression());
@@ -463,7 +498,7 @@ export class Parser {
         return new e.Literal(token, null);
       case TokenType.LEFT_PAREN: {
         const expr = this.expression();
-        this.consume(TokenType.RIGHT_PAREN, "Expected ')' after expression.");
+        this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression");
         return new e.Grouping(token, expr, this.previous());
       }
       case TokenType.IDENTIFIER: {
