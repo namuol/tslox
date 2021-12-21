@@ -3,7 +3,7 @@ import {Result, ok, err} from './Result';
 import {LoxError} from './LoxError';
 import {FunDecl} from './Statement';
 import {Environment} from './Environment';
-import { ReturnedValue } from './ReturnedValue';
+import {ReturnedValue} from './ReturnedValue';
 
 export abstract class LoxCallable {
   abstract call(
@@ -29,21 +29,7 @@ export class LoxFunction extends LoxCallable {
       env.define(params[i].lexeme, args[i]);
     }
 
-    try {
-      interpreter.executeBlock(this.funDecl.body, env);
-    } catch (e) {
-      if (e instanceof ReturnedValue) {
-        return ok(e.value);
-      } else if (e instanceof LoxError) {
-        return err(e);
-      } else {
-        // Unexpected error:
-        throw e;
-      }
-    }
-
-    // Guess we don't have return statements yet!
-    return ok(null);
+    return interpreter.executeBlock(this.funDecl.body, env);
   }
 
   arity(): number {

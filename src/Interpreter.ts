@@ -132,13 +132,22 @@ export class Interpreter
     const previousEnv = this.environment;
     this.environment = environment;
 
-    let result;
+    let result: void | Result<LoxError, LoxValue>;
+
     for (const stmt of statements) {
       result = this.execute(stmt);
       if (result.err) break;
     }
 
+    // Note: We use `ReturnedValue` as `LoxError`s in order to break out of
+    // execution early without only this one additional check if an error
+    // occurs:
+    if (result?.err && result.err instanceof ReturnedValue) {
+      result = ok(result.err.value);
+    }
+
     this.environment = previousEnv;
+
     return result || ok(null);
   }
 
@@ -380,7 +389,8 @@ export class Interpreter
     if (stmt.expr !== null) res = this.evaluate(stmt.expr);
     if (res?.err) return res;
 
-    // We use `throw` to break out of a callstack:
-    throw new ReturnedValue(res ? res.val : null);
+    // We use `err` to break out of the callstack early, as if it were a
+    // `throw`, basically:
+    return err(new ReturnedValue(res ? res.val : null));
   }
 }
