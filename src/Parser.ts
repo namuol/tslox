@@ -144,13 +144,18 @@ export class Parser {
   parameters(): Token[] {
     const parameters = [];
 
-    do {
-      if (parameters.length >= 255) {
-        this.error(this.peek(), "Can't have more than 255 parameters.");
-      }
-      this.consume(TokenType.IDENTIFIER, 'Expect identifer in parameter list');
-      parameters.push(this.previous());
-    } while (this.match(TokenType.COMMA));
+    if (this.peek().type !== TokenType.RIGHT_PAREN) {
+      do {
+        if (parameters.length >= 255) {
+          this.error(this.peek(), "Can't have more than 255 parameters.");
+        }
+        this.consume(
+          TokenType.IDENTIFIER,
+          'Expect identifer in parameter list'
+        );
+        parameters.push(this.previous());
+      } while (this.match(TokenType.COMMA));
+    }
 
     return parameters;
   }
