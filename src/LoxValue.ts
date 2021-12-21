@@ -16,13 +16,16 @@ export abstract class LoxCallable {
 }
 
 export class LoxFunction extends LoxCallable {
-  constructor(private readonly funDecl: FunDecl) {
+  constructor(
+    private readonly funDecl: FunDecl,
+    private readonly closure: Environment
+  ) {
     super();
   }
 
   call(interpreter: Interpreter, args: LoxValue[]): Result<LoxError, LoxValue> {
     // I assume this is where we'll need to implement closures:
-    const env = new Environment(interpreter.globals);
+    const env = new Environment(this.closure);
     const params = this.funDecl.parameters;
 
     for (let i = 0; i < args.length; ++i) {

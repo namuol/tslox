@@ -379,7 +379,7 @@ export class Interpreter
   }
 
   FunDecl(fun: s.FunDecl): Result<LoxError, LoxValue> {
-    const val = new LoxFunction(fun);
+    const val = new LoxFunction(fun, this.environment);
     this.environment.define(fun.name.lexeme, val);
     return ok(val);
   }
