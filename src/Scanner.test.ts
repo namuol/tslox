@@ -72,12 +72,6 @@ describe('Scanner', () => {
             "line": 1,
             "type": "SEMICOLON",
           },
-          Token {
-            "column": 22,
-            "lexeme": "// cool stuff",
-            "line": 1,
-            "type": "COMMENT",
-          },
         ],
       }
     `);
@@ -100,12 +94,6 @@ describe('Scanner', () => {
             "lexeme": "language",
             "line": 1,
             "type": "IDENTIFIER",
-          },
-          Token {
-            "column": 31,
-            "lexeme": "/* pretty nifty */",
-            "line": 1,
-            "type": "COMMENT_BLOCK",
           },
           Token {
             "column": 33,

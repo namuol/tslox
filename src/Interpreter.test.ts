@@ -39,7 +39,7 @@ describe('Interpreter', () => {
 
         const val = new Parser(scannerResult.val, 'test.lox').expression();
 
-        expect(interpreter.expression(val).val).toEqual(expected);
+        expect(interpreter.evaluate(val).val).toEqual(expected);
       });
     }
   });
