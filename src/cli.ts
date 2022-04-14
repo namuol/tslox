@@ -2,7 +2,6 @@
 import {docopt} from 'docopt';
 import {promises as fs} from 'fs';
 import * as readline from 'readline';
-import {Interpreter} from './Interpreter';
 import {Lox} from './Lox';
 import {LoxError} from './LoxError';
 import {print} from './LoxValue';
