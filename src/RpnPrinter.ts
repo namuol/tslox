@@ -67,8 +67,7 @@ export class RpnPrinter implements Visitor<string> {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Fun(expr: Fun): string {
-    return 'fun';
+    return `fun<${expr.name?.lexeme ?? '[un-named]'}>`;
   }
 }

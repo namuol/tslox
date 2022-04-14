@@ -58,8 +58,7 @@ export class AstPrinter implements Visitor<string> {
     return this.parenthesize('call', expr.callee, ...expr.args);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Fun(expr: Fun): string {
-    return `(fun)`;
+    return `(fun ${expr.name?.lexeme ?? '[un-named]'})`;
   }
 }

@@ -103,7 +103,7 @@ const cases: Case[] = [
     ')'], '(call hello 42 (call foo 43))'],
   ['call of call', [
     id('hello'), '(', 42, ')', '(', ')'], '(call (call hello 42))'],
-  ['lambda', ['fun', '(', ')', '{', '}'], '(fun)']
+  ['lambda', ['fun', '(', ')', '{', '}'], '(fun [un-named])']
 ];
 
 const printer = new AstPrinter();

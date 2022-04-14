@@ -133,7 +133,7 @@ export class Parser {
   // function        → IDENTIFIER "(" parameters? ")" block ;
   function(kind: 'function' | 'method'): s.Statement {
     const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name`);
-    return new s.FunDecl(name, this.fun(kind));
+    return new s.FunDecl(name, this.fun(name, kind));
   }
 
   // parameters      → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -326,17 +326,17 @@ export class Parser {
   //                 | assignment;
   lambda(): e.Expression {
     if (this.match(TokenType.FUN)) {
-      return this.fun('function');
+      return this.fun(null, 'function');
     }
     return this.assignment();
   }
 
-  fun(kind: 'function' | 'method'): e.Fun {
+  fun(name: Token | null, kind: 'function' | 'method'): e.Fun {
     this.consume(TokenType.LEFT_PAREN, "Expect '(' at start of parameter list");
     const parameters = this.parameters();
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter");
     this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
-    return new e.Fun(null, parameters, this.block());
+    return new e.Fun(name, parameters, this.block());
   }
 
   // assignment      → IDENTIFIER "=" assignment
