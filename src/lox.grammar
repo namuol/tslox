@@ -30,7 +30,10 @@ exprStmt        → expression ";" ;
 printStmt       → "print" expression ";" ;
 returnStmt      → "return" expression? ";" ;
 
-expression      → assignment ;
+expression      → lambda ;
+
+lambda          → "fun" "(" parameters? ")" block
+                | assignment;
 
 assignment      → IDENTIFIER "=" assignment
                 | logic_or ;

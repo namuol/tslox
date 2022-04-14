@@ -7,6 +7,9 @@ const str = s => new Token(TokenType.STRING, JSON.stringify(s), 0, 0);
 const id = s => new Token(TokenType.IDENTIFIER, s, 0, 0);
 
 const TOKENS = {
+  fun: new Token(TokenType.FUN, 'fun', 0, 0),
+  '{': new Token(TokenType.LEFT_BRACE, '{', 0, 0),
+  '}': new Token(TokenType.RIGHT_BRACE, '}', 0, 0),
   '(': new Token(TokenType.LEFT_PAREN, '(', 0, 0),
   ')': new Token(TokenType.RIGHT_PAREN, ')', 0, 0),
   '=': new Token(TokenType.EQUAL, '==', 0, 0),
@@ -99,7 +102,8 @@ const cases: Case[] = [
       ')',
     ')'], '(call hello 42 (call foo 43))'],
   ['call of call', [
-    id('hello'), '(', 42, ')', '(', ')'], '(call (call hello 42))']
+    id('hello'), '(', 42, ')', '(', ')'], '(call (call hello 42))'],
+  ['lambda', ['fun', '(', ')', '{', '}'], '(fun)']
 ];
 
 const printer = new AstPrinter();

@@ -80,32 +80,6 @@ export class Interpreter
     this.globals.define('clock', new ClockFunction());
   }
 
-  Logical({left, operator, right}: e.Logical): Result<LoxError, LoxValue> {
-    const leftResult = this.evaluate(left);
-    if (leftResult.err != null) return leftResult;
-
-    switch (operator.type) {
-      case TokenType.OR: {
-        if (isTruthy(leftResult.val)) return leftResult;
-        break;
-      }
-      case TokenType.AND: {
-        if (!isTruthy(leftResult.val)) return leftResult;
-        break;
-      }
-      default: {
-        return err(
-          new LoxRuntimeError(
-            operator,
-            `INTERNAL ERROR: Invalid logical operator: ${operator.type}`
-          )
-        );
-      }
-    }
-
-    return this.evaluate(right);
-  }
-
   interpret(program: s.Statement[]): Result<LoxError, void | LoxValue> {
     let result: void | Result<LoxError, LoxValue>;
 
@@ -154,6 +128,36 @@ export class Interpreter
   evaluate = (expr: e.Expression): Result<LoxError, LoxValue> => {
     return expr.accept(this);
   };
+
+  Fun(expr: e.Fun): Result<LoxError, LoxValue> {
+    return ok(new LoxFunction(expr, this.environment));
+  }
+
+  Logical({left, operator, right}: e.Logical): Result<LoxError, LoxValue> {
+    const leftResult = this.evaluate(left);
+    if (leftResult.err != null) return leftResult;
+
+    switch (operator.type) {
+      case TokenType.OR: {
+        if (isTruthy(leftResult.val)) return leftResult;
+        break;
+      }
+      case TokenType.AND: {
+        if (!isTruthy(leftResult.val)) return leftResult;
+        break;
+      }
+      default: {
+        return err(
+          new LoxRuntimeError(
+            operator,
+            `INTERNAL ERROR: Invalid logical operator: ${operator.type}`
+          )
+        );
+      }
+    }
+
+    return this.evaluate(right);
+  }
 
   If({condition, thenBranch, elseBranch}: s.If): Result<LoxError, LoxValue> {
     const conditionResult = this.evaluate(condition);
@@ -378,9 +382,9 @@ export class Interpreter
     );
   }
 
-  FunDecl(fun: s.FunDecl): Result<LoxError, LoxValue> {
-    const val = new LoxFunction(fun, this.environment);
-    this.environment.define(fun.name.lexeme, val);
+  FunDecl(funDecl: s.FunDecl): Result<LoxError, LoxValue> {
+    const val = new LoxFunction(funDecl.fun, this.environment);
+    this.environment.define(funDecl.name.lexeme, val);
     return ok(val);
   }
 

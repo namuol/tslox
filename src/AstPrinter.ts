@@ -10,6 +10,7 @@ import {
   Assignment,
   Logical,
   Call,
+  Fun,
 } from './Expression';
 
 export class AstPrinter implements Visitor<string> {
@@ -55,5 +56,10 @@ export class AstPrinter implements Visitor<string> {
 
   Call(expr: Call): string {
     return this.parenthesize('call', expr.callee, ...expr.args);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  Fun(expr: Fun): string {
+    return `(fun)`;
   }
 }

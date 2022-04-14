@@ -1,9 +1,8 @@
-import {Interpreter, LoxRuntimeError} from './Interpreter';
-import {Result, ok, err} from './Result';
+import {Interpreter} from './Interpreter';
+import {Result} from './Result';
 import {LoxError} from './LoxError';
-import {FunDecl} from './Statement';
+import {Fun} from './Expression';
 import {Environment} from './Environment';
-import {ReturnedValue} from './ReturnedValue';
 
 export abstract class LoxCallable {
   abstract call(
@@ -17,7 +16,7 @@ export abstract class LoxCallable {
 
 export class LoxFunction extends LoxCallable {
   constructor(
-    private readonly funDecl: FunDecl,
+    private readonly fun: Fun,
     private readonly closure: Environment
   ) {
     super();
@@ -26,21 +25,21 @@ export class LoxFunction extends LoxCallable {
   call(interpreter: Interpreter, args: LoxValue[]): Result<LoxError, LoxValue> {
     // I assume this is where we'll need to implement closures:
     const env = new Environment(this.closure);
-    const params = this.funDecl.parameters;
+    const params = this.fun.parameters;
 
     for (let i = 0; i < args.length; ++i) {
       env.define(params[i].lexeme, args[i]);
     }
 
-    return interpreter.executeBlock(this.funDecl.body, env);
+    return interpreter.executeBlock(this.fun.body, env);
   }
 
   arity(): number {
-    return this.funDecl.parameters.length;
+    return this.fun.parameters.length;
   }
 
   toString(): string {
-    return `<fn ${this.funDecl.name.lexeme}>`;
+    return `<fn ${this.fun.name?.lexeme ?? '[function]'}>`;
   }
 }
 

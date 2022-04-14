@@ -1,6 +1,7 @@
 import {HasSourceLocation} from './HasSourceLocation';
 import {Token} from './Scanner';
 import {SourceLocation} from './SourceLocation';
+import {Statement} from './Statement';
 
 export interface Visitor<T> {
   Binary(expr: Binary): T;
@@ -11,6 +12,7 @@ export interface Visitor<T> {
   Variable(expr: Variable): T;
   Assignment(expr: Assignment): T;
   Logical(expr: Logical): T;
+  Fun(expr: Fun): T;
   Call(expr: Call): T;
 }
 
@@ -155,11 +157,27 @@ export class Logical extends Expression {
   }
 }
 
+export class Fun extends Expression {
+  constructor(
+    readonly name: Token | null,
+    readonly parameters: Token[],
+    readonly body: Statement[]
+  ) {
+    super();
+  }
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.Fun(this);
+  }
+  getLocation(filename: string): SourceLocation {
+    throw new Error('Not implemented yet');
+  }
+}
+
 export class Call extends Expression {
   constructor(
     readonly callee: Expression,
     readonly args: Expression[],
-    readonly closingParen: Token,
+    readonly closingParen: Token
   ) {
     super();
   }

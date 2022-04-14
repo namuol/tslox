@@ -129,15 +129,11 @@ export class Parser {
   funDecl(): s.Statement {
     return this.function('function');
   }
+
   // function        → IDENTIFIER "(" parameters? ")" block ;
   function(kind: 'function' | 'method'): s.Statement {
     const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name`);
-
-    this.consume(TokenType.LEFT_PAREN, "Expect '(' at start of parameter list");
-    const parameters = this.parameters();
-    this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter");
-    this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
-    return new s.FunDecl(name, parameters, this.block());
+    return new s.FunDecl(name, this.fun(kind));
   }
 
   // parameters      → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -321,9 +317,26 @@ export class Parser {
     return new s.Return(keyword, expr);
   }
 
-  // expression      → assignment ;
+  // expression      → lambda ;
   expression(): e.Expression {
+    return this.lambda();
+  }
+
+  // lambda          → "fun" "(" parameters? ")" block
+  //                 | assignment;
+  lambda(): e.Expression {
+    if (this.match(TokenType.FUN)) {
+      return this.fun('function');
+    }
     return this.assignment();
+  }
+
+  fun(kind: 'function' | 'method'): e.Fun {
+    this.consume(TokenType.LEFT_PAREN, "Expect '(' at start of parameter list");
+    const parameters = this.parameters();
+    this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameter");
+    this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
+    return new e.Fun(null, parameters, this.block());
   }
 
   // assignment      → IDENTIFIER "=" assignment

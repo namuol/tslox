@@ -1,4 +1,4 @@
-import {Expression} from './Expression';
+import {Expression, Fun} from './Expression';
 import {Token} from './Scanner';
 
 export interface Visitor<T> {
@@ -75,11 +75,7 @@ export class While extends Statement {
 }
 
 export class FunDecl extends Statement {
-  constructor(
-    readonly name: Token,
-    readonly parameters: Token[],
-    readonly body: Statement[]
-  ) {
+  constructor(readonly name: Token, readonly fun: Fun) {
     super();
   }
   accept<T>(visitor: Visitor<T>): T {

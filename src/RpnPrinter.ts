@@ -10,6 +10,7 @@ import {
   Assignment,
   Logical,
   Call,
+  Fun,
 } from './Expression';
 
 /**
@@ -64,5 +65,10 @@ export class RpnPrinter implements Visitor<string> {
     return [expr.args.map(this.print), `call::${this.print(expr.callee)}`].join(
       ' '
     );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  Fun(expr: Fun): string {
+    return 'fun';
   }
 }
