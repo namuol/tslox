@@ -73,11 +73,16 @@ export class Interpreter
     s.Visitor<Result<LoxError, LoxValue>>
 {
   globals: Environment = new Environment(null);
+  private readonly locals: Map<e.Expression, number> = new Map();
   private environment: Environment = this.globals;
 
   constructor(private readonly filename: string) {
     // FFI-like example:
     this.globals.define('clock', new ClockFunction());
+  }
+
+  resolve(expr: e.Expression, depth: number) {
+    this.locals.set(expr, depth);
   }
 
   interpret(program: s.Statement[]): Result<LoxError, void | LoxValue> {
@@ -196,8 +201,12 @@ export class Interpreter
     if (result.err) {
       return result;
     }
-
-    return this.environment.assign(expr.name, result.val);
+    const distance = this.locals.get(expr);
+    if (distance != null) {
+      return this.environment.assignAt(distance, expr.name, result.val);
+    } else {
+      return this.environment.assign(expr.name, result.val);
+    }
   }
 
   Var(stmt: s.Var): Result<LoxError, LoxValue> {
@@ -215,8 +224,17 @@ export class Interpreter
     return ok(val);
   }
 
+  lookUpVariable(name: Token, expr: e.Variable): void | LoxValue {
+    const distance = this.locals.get(expr);
+    if (distance != null) {
+      return this.environment.getAt(distance, name.lexeme);
+    } else {
+      return this.globals.get(name.lexeme);
+    }
+  }
+
   Variable(expr: e.Variable): Result<LoxError, LoxValue> {
-    const val = this.environment.get(expr.name.lexeme);
+    const val = this.lookUpVariable(expr.name, expr);
     if (val === undefined) {
       return err(
         new LoxRuntimeError(
@@ -225,7 +243,6 @@ export class Interpreter
         )
       );
     }
-
     return ok(val);
   }
 

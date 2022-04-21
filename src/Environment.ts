@@ -8,6 +8,41 @@ export class Environment {
   private readonly vars: Map<string, LoxValue> = new Map();
   constructor(private readonly enclosing: null | Environment) {}
 
+  getAt(distance: number, name: string): void | LoxValue {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let env: null | Environment = this;
+
+    for (let i = 0; i < distance && env; i += 1) {
+      env = env.enclosing;
+    }
+
+    return env ? env.get(name) : undefined;
+  }
+
+  assignAt(
+    distance: number,
+    name: Token,
+    val: LoxValue
+  ): Result<LoxError, LoxValue> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let env: null | Environment = this;
+
+    for (let i = 0; i < distance && env; i += 1) {
+      env = env.enclosing;
+    }
+
+    if (!env) {
+      return err(
+        new LoxRuntimeError(
+          name,
+          `INTERNAL ERROR: Could not find environment at depth ${distance}`
+        )
+      );
+    }
+
+    return env.assign(name, val);
+  }
+
   get(name: string): LoxValue | void {
     const val = this.vars.get(name);
 
