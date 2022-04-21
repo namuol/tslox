@@ -9,7 +9,7 @@
     "tslox": "./lib/cli.js"
   },
   "scripts": {
-    "test": "jest",
+    "test": "npm run --silent build && jest",
     "start": "npm run --silent build && node ./lib/cli.js",
     "build": "tsc -p tsconfig.json",
     "prepublish": "npm run build"

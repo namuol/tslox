@@ -1,0 +1,9 @@
+fun forEach(a, b, c, fn) {
+  fn(a);
+  fn(b);
+  fn(c);
+}
+
+forEach("hi", "okay", 42, fun (x) {
+  print x;
+});
