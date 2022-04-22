@@ -24,6 +24,10 @@ const cases: Cases = {
     stdout: ['hi', 'okay', '42', ''].join('\n'),
     stderr: '',
   },
+  'closure-scope.lox': {
+    stdout: ['global', 'global', ''].join('\n'),
+    stderr: '',
+  },
 };
 
 describe('end-to-end CLI tests', () => {
