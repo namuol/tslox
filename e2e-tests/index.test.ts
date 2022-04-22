@@ -28,6 +28,10 @@ const cases: Cases = {
     stdout: ['global', 'global', ''].join('\n'),
     stderr: '',
   },
+  'nonsense-return.lox': {
+    stdout: '',
+    stderr: "[1:7]: Can't return from top-level code.\n",
+  }
 };
 
 describe('end-to-end CLI tests', () => {

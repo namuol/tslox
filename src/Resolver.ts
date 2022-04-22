@@ -18,12 +18,19 @@ export class LoxResolverError implements LoxError {
   }
 }
 
+enum FunctionType {
+  NONE,
+  FUNCTION,
+}
+
 export class Resolver
   implements
     e.Visitor<Result<LoxError[], void>>,
     s.Visitor<Result<LoxError[], void>>
 {
   private readonly scopes: Array<Map<string, boolean>> = [];
+  private currentFunction = FunctionType.NONE;
+
   constructor(private readonly interpreter: Interpreter) {}
 
   beginScope(): void {
@@ -132,7 +139,12 @@ export class Resolver
     return result;
   }
 
-  resolveFunction(fun: e.Fun): Result<LoxError[], void> {
+  resolveFunction(
+    fun: e.Fun,
+    funcType: FunctionType
+  ): Result<LoxError[], void> {
+    const enclosingFunction = this.currentFunction;
+    this.currentFunction = funcType;
     this.beginScope();
     for (const param of fun.parameters) {
       const result = this.declare(param);
@@ -141,6 +153,7 @@ export class Resolver
     }
     const result = this.resolveStatements(fun.body);
     this.endScope();
+    this.currentFunction = enclosingFunction;
     return result;
   }
 
@@ -149,7 +162,7 @@ export class Resolver
     if (result.err) return result;
     this.define(stmt.name);
 
-    return this.resolveFunction(stmt.fun);
+    return this.resolveFunction(stmt.fun, FunctionType.FUNCTION);
   }
 
   Fun(expr: e.Fun): Result<LoxError[], void> {
@@ -159,7 +172,7 @@ export class Resolver
       this.define(expr.name);
     }
 
-    return this.resolveFunction(expr);
+    return this.resolveFunction(expr, FunctionType.FUNCTION);
   }
 
   Expr(stmt: s.Expr): Result<LoxError[], void> {
@@ -196,6 +209,11 @@ export class Resolver
   }
 
   Return(stmt: s.Return): Result<LoxError[], void> {
+    if (this.currentFunction === FunctionType.NONE) {
+      return err([
+        new LoxResolverError("Can't return from top-level code.", stmt.keyword),
+      ]);
+    }
     return stmt.expr ? this.resolveExpression(stmt.expr) : ok(undefined);
   }
 
